@@ -1,0 +1,2 @@
+# OsuRankBot
+Osu discord bot
