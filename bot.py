@@ -72,7 +72,7 @@ async def on_message(ctx):
                         f"personne drastiquement plus intelligente.")
     if "ez" in content.lower():
         await ctx.reply("mmmmmmmmmmmh ez")
-    await bot.process_commands(ctx)
+    await client.process_commands(ctx)
 
 
 def is_it_me(ctx):

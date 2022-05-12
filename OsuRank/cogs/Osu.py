@@ -207,6 +207,24 @@ class Osu(commands.Cog):
     async def last_play(self, ctx,
                         user: str = "",
                         mode: str = "osu"):
+
+        bme = ["<", "@", ">"]
+        if any(x in user for x in bme):
+            user_discord_id = user
+            for b in bme:
+                if b in user_discord_id:
+                    user_discord_id = user_discord_id.replace(b, "")
+            
+            for p in data_p:
+                if str(user_discord_id) == str(data_p[p]["discord_id"]):
+                    user = str(data_p[p]["osu_id"])
+                    mode = str(data_p[p]["mode"])
+                    break
+            else:
+                return await ctx.send("La personne que tu as ping n'est pas lié avec le bot"
+                                    "\nFais `!o bind <url profil osu>` pour bind ton profil osu.")
+            
+
         if user == "":
             for p in data_p:
                 if str(ctx.author.id) == str(data_p[p]["discord_id"]):
