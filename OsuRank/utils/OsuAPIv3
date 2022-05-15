@@ -1,0 +1,23 @@
+import requests
+import json
+
+class API:
+    
+    def __init__(self):
+        self.url = "https://osu.ppy.sh/api/v2"
+        self.cfg = json.loads(open("config_OSU.json", "r").read())
+        self.client_secret = self.cfg["client_secret"]
+        self.client_id = self.cfg["client_id"]
+        
+    def get_token(self):
+        data = {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "grant_type": "client_credentials",
+            "scope": "public",
+        }
+        result = requests.post("https://osu.ppy.sh/oauth/token", data=data)
+        if result.status_code != 200:
+            print(f"the request get_token failed, \nreason: {result.reason}")
+            return self.get_token()
+        return result.json().get('access_token')

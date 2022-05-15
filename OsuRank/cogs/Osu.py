@@ -1,6 +1,7 @@
 import datetime
 import os
 import typing
+from typing_extensions import ParamSpecKwargs
 import discord
 import json
 import requests
@@ -9,6 +10,8 @@ from PIL import Image, ImageFont, ImageDraw
 from OsuRank.utils import OsuAPIv2, OsuAPI, utils
 from OsuRank.utils import display_score as dp
 from bs4 import BeautifulSoup
+from pprint import pprint
+import time
 
 prefix = "!o "
 data_p = json.loads(open('players.json', "r").read())
@@ -108,7 +111,7 @@ class Osu(commands.Cog):
             if "completed by" in embed.author.name:
                 user_id = os.path.split(embed.author.url)[1]
                 beatmap_id = os.path.split(embed.url)[1]
-
+                
                 play = OsuAPIv2.get_data_user_score(beatmap_id, user_id)["score"]
                 await message.edit(embed=utils.generate_embed_score(play, "Best "))
                 await message.remove_reaction(emoji, user)
@@ -265,6 +268,176 @@ class Osu(commands.Cog):
         emojis = ['🏆', '⏰']
         for emoji in emojis:
             await rank_embed.add_reaction(emoji)
+
+
+    @commands.command(name="last_play_compare",
+             aliases=["lpc"],
+             usage=f"{prefix}last_play_compare <param>",
+             brief="affiche le dernier score de la personne qui éxecute la commande et les compare avec..."
+             )
+    async def last_play_compare(self, ctx, param: str = ""):
+        print(f"commande 'last_play_compare' éxécuté par {ctx.author}")
+        
+        for p in data_p:
+            if str(ctx.author.id) == str(data_p[p]["discord_id"]):
+                user_id = str(data_p[p]["osu_id"])
+                mode = str(data_p[p]["mode"])
+                username = str(data_p[p]["username"])
+                rival = data_p[p].get("rival")
+                player = p
+                break
+        else:
+            return await ctx.send("Fais `!o bind <url profil osu>` pour pouvoir  utiliser la commande")
+            
+        def CheckMess(message):
+            return message.author == ctx.message.author and ctx.message.channel == message.channel
+        
+        if param == "setup":
+            # en gros soit chaque rep après ce mess ou kwargs
+            await ctx.send("OK ! Merci de m'envoyer le nom de 5 joueurs, qui bien entendu ne te surpasseront jamais "
+                           "mais bien entendu il faut savoir leurs démontrer que des fois tu fais preuve de faiblesse..."
+                           "\nBref, Pour que je puisse enregistrer les mecs nuls qui éssaient de te dépasser "
+                           "envois moi un message du style: \nFayberiito, Planchapain, regress Joksath, silverxs83, chocomint")
+            
+            try:
+                msg = await self.client.wait_for("message", timeout = 60, check = CheckMess)
+            except:
+                return await ctx.reply("HEY ! T'as oublié de me l'envoyer ce message ???")
+            
+            # print(msg)
+            print(msg.content)
+            rep = msg.content
+            rivals = rep.split(", ")
+            
+            data_sup = [OsuAPIv2.get_data_user(user_id=r, mode=mode) for r in rivals]
+            ricard = []
+            for d in data_sup:
+                if d == '404' or d is None:
+                    return await ctx.send(f"ptit problème là c'est qui {rivals[data_sup.index(d)]}")
+                # dict(d)
+                ricard.append((d.get("id"), d.get("username")))
+                print(d.get("statistics").get("pp"))
+                await ctx.send(f":flag_{d.get('country_code').lower()}: **{d.get('username')}** avec `{int(d.get('statistics').get('pp')):,}`pp.")
+            
+            # pprint(data_sup[2], compact=True)
+            data_p[player]["rival"] = ricard
+            json.dump(data_p, open("players.json", "w"))
+            await ctx.send("Nickel mon pote, t'as tout compris enfin j'espère que les mecs que tu veux fumer c'est bien eux.")
+            return
+        
+        if rival is None:
+            return await ctx.send("il semblerait que tu n'es pas définis de personne avec qui comparer"
+                                  "\nPour le faire fais `!o lpc setup`")
+        else:
+            print(f"good {rival}")
+                
+        play = OsuAPIv2.get_data_user_recent(user_id=user_id, mode=mode)
+            
+        if not play:
+            return await ctx.send(f"{username} n'a pas de parties récentes.")
+        else:
+            play = play[0]
+            
+        pprint(play, compact=True)
+        beatmap = play.get('beatmap')
+        beatmapset = play.get('beatmapset')
+        
+        rival_ = list(rival)
+        rival_.append([user_id, username])
+        n = 0
+        
+        for r in rival_:
+            if r[0] == int(user_id):
+                rival_.append(play.get('score'))
+            else:
+                dang = OsuAPIv2.get_data_user_score(map_id=beatmap.get("id"), user_id=r[0], mode=mode)
+                if dang is not None:
+                    rival_[n].append(dang.get('score').get('score'))
+                else:
+                    rival_[n].append(0)
+            n += 1
+        
+        rival_ = sorted(rival_, key=lambda x: x[2])
+        rival_.reverse()
+        print(rival_)
+        
+        comp = []
+        field = ""
+        for r in rival_:
+            if r[0] == int(user_id):
+                bing = play
+            else:
+                dang = OsuAPIv2.get_data_user_score(map_id=beatmap.get("id"), user_id=r[0], mode=mode)
+                bing = None
+                if dang is not None:
+                    bing = dang.get("score")
+            # 0: Rank, 1: FC, 2: pp, 3: score, 4: combo, 5: acc,
+            # pprint(dang)
+            
+            if bing is not None:
+                # pprint(bing)
+
+                field = field + f"\n**__[{r[1]}](https://osu.ppy.sh/scores/mania/{bing.get('id')})__**:" \
+                                f"\n**rank:** {emotes.get(bing.get('rank'))}|- - - - - - - - - - - - - - - - -| **pp:** `{round(bing.get('pp'))}`pp" \
+                                f"\n**accuracy:** `{round(float(bing.get('accuracy')*100), 2)}`*%* |- - - - - - - - - -| **combo:** `{bing.get('max_combo')}`x"
+                                # f"\n - "
+                                # f" <--> [{bing.get('score')}]"
+            else:
+                field = field + f"\n**{r[1]}**: {emotes.get('0')}"
+                
+        stats = play.get('statistics')
+        user = play.get('user')
+
+        username = user.get('username')
+        title = beatmapset.get('title')
+
+        print(f"{username} completed the map {title}")
+        # wprint(f"{username} completed the map {title}")
+
+        color = 0xff66aa
+        for p in data_p:
+            if data_p[p]['osu_id'] == user.get('id'):
+                color = int(data_p[p]['color'], 16)
+
+        t = datetime.datetime.strptime(play.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
+
+        embed = discord.Embed(title="**" + title + "**", url=beatmap.get('url'), color=color, timestamp=t)
+
+        if play.get("mode") == "mania":
+            img_mode = "https://i.imgur.com/NVkykfe.png"
+        elif play.get("mode") == "osu":
+            img_mode = "https://i.imgur.com/bnSSOS9.png"
+        elif play.get("mode") == "fruits":
+            img_mode = "https://i.imgur.com/MjOv5Kd.png"
+        else:
+            img_mode = "https://i.imgur.com/iSQFSTn.png"
+
+        embed.set_thumbnail(url=img_mode)
+        embed.set_image(url=beatmapset.get('covers').get('card'))
+        embed.set_author(name=f"{beatmap.get('status')} completed by {username}", url="https://osu.ppy.sh/users/"+ str(user.get('id')),
+                        icon_url=user.get('avatar_url'))
+        # ☆☆☆
+        length = str(time.strftime('%M:%S', time.gmtime(int(beatmap.get("total_length")))))
+        stars = beatmap.get('difficulty_rating')
+        embed.add_field(name=" __Beatmap informations:__ ", value=f"\n **__Durée:__** `{length}` "
+                                                                  f"\n **__stars:__** `{stars}☆`", inline=False)
+
+        if not play.get('mods'):
+            mods = "No Mod"
+        else:
+            mods = ', '.join(play.get('mods'))
+
+        if play.get("pp") is not None:
+            pp = int(round(play.get('pp')))
+        else:
+            pp = 0
+
+        emote_rank = emotes.get(play.get("rank"))
+        embed.add_field(name=f"**__Score Comparaison:__**", value=field,
+                        inline=True)
+        
+        await ctx.send(embed=embed)
+
     
 
     @commands.command(name="rank",
@@ -418,17 +591,21 @@ class Osu(commands.Cog):
                     mode: str = "osu"):
         print(f"commande 'score' éxécuté par {ctx.author}")
         if user == "":
-            if type(utils.get_binded(ctx.author.id)) == tuple:
-                username, user_id, mode, color = utils.get_binded(ctx.author.id)
-            else:
-                await ctx.send("Tu peux mettre un pseudo ?"
+            player = utils.get_binded(ctx)
+            if player is None:
+                return await ctx.send("Tu peux mettre un pseudo ?"
                             "\nFais `!o bind <url profil osu>` pour pouvoir directement utiliser `!o lp`")
-                return
+            else:
+                user = player.get("username")
+                mode = player.get("mode")
+            
 
         data_m = OsuAPIv2.get_data_user(user_id=user, mode=mode)
         if data_m == "404":
             # relou, parce que quand on le fait pour soit même bah ça mets l'id
             return await ctx.send(f"mmmh ? {user} n'a jamais joué à osu!")
+        elif data_m is None:
+            return await ctx.send("Error: data is None")
 
         if mode == '':
             mode = data_m['playmode']
@@ -439,7 +616,10 @@ class Osu(commands.Cog):
         user_id = str(data_m['id'])
         map_id = os.path.split(url)[1]
 
-        play = OsuAPIv2.get_data_user_score(user_id=user_id, map_id=map_id, mode=mode)['score']
+        play = OsuAPIv2.get_data_user_score(user_id=user_id, map_id=map_id, mode=mode)
+        if play is None:
+            return await ctx.send("eror")
+        play = play.get('score')
         rank_embed = await ctx.send(embed=utils.generate_embed_score(play))
         emojis = ['🏆', '⏰']
         for emoji in emojis:
@@ -458,12 +638,15 @@ class Osu(commands.Cog):
         print(f"commande 'top_scores' éxécuté par {ctx.author}")
 
         if username == "":
-            if type(utils.get_binded(ctx.author.id)) == tuple:
-                username, user_id, mode, color = utils.get_binded(ctx.author.id)
+            player = utils.get_binded(ctx)
+            if player is None:
+                return await ctx.send("Tu peux mettre un pseudo ?"
+                                      "\nFais `!o bind <url profil osu>` pour pouvoir directement utiliser `!o lp`")
             else:
-                await ctx.send("Tu peux mettre un pseudo ?"
-                            "\nFais `!o bind <url profil osu>` pour pouvoir directement utiliser `!o lp`")
-                return
+                user = player.get("username")
+                mode = player.get("mode")
+                user_id = str(player.get("osu_id"))
+                color = int(player.get('color'), 16)
         else:
             color = 0xff69b4
             data_o = OsuAPIv2.get_data_user(user_id=username, mode=mode)

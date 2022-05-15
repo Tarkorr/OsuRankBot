@@ -36,6 +36,10 @@ def generate_embed_score(score, kind: str = ""):
     beatmapset = score.get('beatmapset')
     if beatmapset is None:
         beatmapset = OsuAPIv2.get_data_beatmapset(beatmap.get('beatmapset_id'))
+    
+    # beurk change >>>
+    if beatmapset is None:
+        return print("beatmapset is None shrug")
 
     stats = score.get('statistics')
     user = score.get('user')
@@ -112,12 +116,8 @@ def generate_embed_score(score, kind: str = ""):
     return embed
 
 
-def get_binded(author_id):
+def get_binded(ctx):
     for p in data_p:
-        if str(author_id) == str(data_p[p]["discord_id"]):
-            user_id = str(data_p[p]["osu_id"])
-            username = str(data_p[p]["username"])
-            mode = str(data_p[p]["mode"])
-            color = int(data_p[p]['color'], 16)
-            return username, user_id, mode, color
-    return "Inconnu"
+        if str(ctx.author.id) == str(data_p[p]["discord_id"]):
+            return data_p[p]
+    return None

@@ -1,16 +1,19 @@
 import datetime
 from pprint import pprint
 import requests
-
+import json
 # version 2.0.1
 
 API_URL = "https://osu.ppy.sh/api/v2"
+cfg = json.loads(open("config_OSU.json", "r").read())
 
+client_secret = cfg["client_secret"]
+client_id = cfg["client_id"]
 
 def get_token():
     data = {
-        "client_id": "8841",
-        "client_secret": "pR5lvVtUcQ82psQCWRhBTkwgUYYfPUZrqP2oU2Gf",
+        "client_id": client_id,
+        "client_secret": client_secret,
         "grant_type": "client_credentials",
         "scope": "public",
     }
@@ -42,7 +45,8 @@ def get_data_beatmaps(ids: list):
     r = requests.get(f'{API_URL}/beatmaps', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_beatmaps failed. args :{ids}. \nReason: {r.reason}")
         return
@@ -65,7 +69,8 @@ def get_data_beatmapsets_events():
     r = requests.get(f'{API_URL}/beatmapsets/events', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_beatmap failed. args : \nReason: {r.reason}")
         return
@@ -83,7 +88,8 @@ def get_data_beatmap(beatmap_id):
     r = requests.get(f'{API_URL}/beatmaps/{str(beatmap_id)}', headers=headers)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_beatmap failed. args : {beatmap_id} \nReason: {r.reason}")
         return
@@ -101,7 +107,8 @@ def get_data_beatmapset(beatmapset_id):
     r = requests.get(f'{API_URL}/beatmapsets/{beatmapset_id}', headers=headers)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_beatmapset failed. args : {beatmapset_id} \nReason: {r.reason}")
         return
@@ -119,7 +126,8 @@ def get_data_user(user_id, mode: str = ""):
     r = requests.get(f'{API_URL}/users/{user_id}/{mode}', headers=headers)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_user failed. args : {user_id}, {mode} \nReason: {r.reason} "
               f"\nstatus code : {r.status_code}")
@@ -145,7 +153,8 @@ def get_data_user_score(map_id, user_id, mods: str = "", mode: str = ""):
     r = requests.get(f'{API_URL}/beatmaps/{map_id}/scores/users/{user_id}', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_user_score failed. args : {map_id}, {user_id}, {mode} \nReason: {r.reason}")
         return
@@ -167,7 +176,8 @@ def get_data_user_scores(map_id, user_id, mode: str = ""):
     r = requests.get(f'{API_URL}/beatmaps/{map_id}/scores/users/{user_id}/all', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_user_score failed. args : {map_id}, {user_id}, {mode} \nReason: {r.reason}")
         return
@@ -190,7 +200,8 @@ def get_data_user_recent(user_id, mode: str = "osu"):
     r = requests.get(f'{API_URL}/users/{user_id}/scores/recent', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_user_recent failed. args : {user_id}, {mode} \n Reason: {r.reason}")
         return
@@ -213,7 +224,8 @@ def get_data_user_best(user_id, mode: str = "osu", limit: int = 5):
     r = requests.get(f'{API_URL}/users/{user_id}/scores/best', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_user_recent failed. args : {user_id}, {mode} \n Reason: {r.reason}")
         return
@@ -236,7 +248,8 @@ def search(query, mode: str = ""):
     r = requests.get(f'{API_URL}/search', headers=headers, params=params)
 
     if r.status_code == 200:
-        return r.json()
+        if r.json() is not None:
+            return r.json()
     else:
         print(f"The request get_data_user_recent failed. args : {mode}, {query} \n Reason: {r.reason}")
         return
