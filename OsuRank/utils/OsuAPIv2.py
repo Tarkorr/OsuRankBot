@@ -20,16 +20,11 @@ def get_token():
     result = requests.post("https://osu.ppy.sh/oauth/token", data=data)
     if result.status_code != 200:
         print(f"the request get_token failed, \nreason: {result.reason}")
-        return get_token()
+        return 
     return result.json().get('access_token')
 
 
 def get_data_beatmaps(ids: list):
-    """
-    not tested yet.
-    :param ids:
-    :return:
-    """
     token = get_token()
 
     headers = {
@@ -43,13 +38,15 @@ def get_data_beatmaps(ids: list):
     }
 
     r = requests.get(f'{API_URL}/beatmaps', headers=headers, params=params)
+    data = {}
 
     if r.status_code == 200:
         if r.json() is not None:
-            return r.json()
+            data = r.json()
     else:
         print(f"The request get_data_beatmaps failed. args :{ids}. \nReason: {r.reason}")
-        return
+    
+    return data
 
 
 def get_data_beatmapsets_events():

@@ -1,12 +1,12 @@
 import requests
 import datetime
+import json
 
 # version 1.1
 
 
 class KEYS:
-    OSU_API = "bab47c942d3ceda760dfcd8aca8856b0f795560f"
-    OSU_API_V2 = "pR5lvVtUcQ82psQCWRhBTkwgUYYfPUZrqP2oU2Gf"
+    OSU_API = json.loads(open("config_OSU.json", "r").read())["OSU_API"]
 
 
 def get_data_beatmaps(mode: str = ""):
