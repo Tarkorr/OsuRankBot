@@ -107,14 +107,14 @@ class Osu_Render(commands.Cog):
                 usage=f"{prefix}skin [show, set] <id>",
                 brief=f"Affiche tous les skins disponibles pour `{prefix}render` 'set' pour définir le skin"
                 )
-    async def skin(self, ctx, param: str = "", skin_id: int = None):
+    async def skin(self, ctx, param: str = "", skin_id: int = 177013):
         print(f"commande 'skin' éxécuté par {ctx.author}")
         URL = "https://apis.issou.best/ordr/"
         skins = requests.get(url=URL + "skins").json()['skins']
         embeds = []
 
         if param == "set":
-            if skin_id is None:
+            if skin_id == 177013:
                 return await ctx.send("il manque l'`id` du skin."
                                     "\n__exemple:__ `!o set 23` avec pour `id` 23.")
             for p in data_p:

@@ -52,7 +52,7 @@ class API:
         else:
             print(f"The request get_data_beatmap failed. args : "
                   f"\nbeatmap_id: {beatmap_id} \nReason: {r.reason}")
-        return dict
+        return dict()
     
     
     # old: get_data_beatmaps
@@ -69,7 +69,7 @@ class API:
         else:
             print(f"The request get_data_beatmaps failed. args : "
                   f"\nids: {ids}. \nReason: {r.reason}")
-        return dict
+        return dict()
     
     
     def get_beatmap_scores(self, 
@@ -86,7 +86,7 @@ class API:
         else:
             print(f"The request get_data_beatmaps failed. args : "
                   f"\nbeatmap_id: {beatmap_id}, mode: {mode}. \nReason: {r.reason}")
-        return dict
+        return dict()
 
 
     # old: get_data_beatmapset
@@ -100,7 +100,7 @@ class API:
         else:
             print(f"The request get_data_beatmapset failed. args : "
                   f"\nbeatmapset_id: {beatmapset_id} \nReason: {r.reason}")
-        return dict
+        return dict()
     
     
     # not documented
@@ -121,7 +121,7 @@ class API:
         else:
             print(f"The request get_data_beatmap failed. args :"
                   f"\nlimit: {limit}, beatmapset_status: {beatmapset_status} \nReason: {r.reason}")
-        return dict
+        return dict()
     
     
     
@@ -141,7 +141,7 @@ class API:
         else:
             print(f"The request get_data_user failed. args : "
                   f"\nuser: {user}, mode: {mode} \nReason: {r.reason} ")
-        return dict
+        return dict()
     
     
     def get_users(self, 
@@ -158,13 +158,13 @@ class API:
         else:
             print(f"The request get_data_user failed. args : "
                   f"\nids: {ids} \nReason: {r.reason} ")
-        return dict
+        return dict()
     
     
     def get_user_score(self, user: str,
                              type: str,
-                             offset: str,
-                             include_fails: int,
+                             offset: str = "",
+                             include_fails: int = 0,
                              limit: int = 5,
                              mode: str = "osu"):
 
@@ -183,7 +183,7 @@ class API:
             print(f"The request get_data_user_recent failed. args : "
                   f"\nuser: {user}, type: {type}, offset: {offset},"
                   f"\ninclude_fails: {include_fails}, limit: {limit}, mode: {mode} \nReason: {r.reason}")
-        return dict
+        return dict()
     
 
     #old: get_data_user_score
@@ -205,7 +205,7 @@ class API:
             print(f"The request get_data_user_score failed. args : "
                   f"\nbeatmap_id: {beatmap_id}, user: {user}, mode: {mode} \nReason: {r.reason}")
         
-        return dict
+        return dict()
     
     # old: get_data_user_scores
     def get_user_beatmap_scores(self, 
@@ -224,7 +224,7 @@ class API:
         else:
             print(f"The request get_data_user_score failed. args : "
                   f"\nbeatmap_id: {beatmap_id}, user: {user}, mode: {mode} \nReason: {r.reason}")
-        return dict
+        return dict()
     
     
     
@@ -233,7 +233,7 @@ class API:
     # mode: all, user, wiki_page, default: all
     def search(self, 
                query: str, 
-               page: int, 
+               page: int = 0, 
                mode: str = ""):
 
         params = {
@@ -250,6 +250,4 @@ class API:
             print(f"The request get_data_user_recent failed. args : "
                   f"\n{mode}, {query} \n Reason: {r.reason}")
             
-        return dict
-    
-    
+        return dict()
