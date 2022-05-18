@@ -1,5 +1,6 @@
 import requests
 import json
+import typing
 
 # TODO BEATMAPS:
 # - lookup
@@ -130,16 +131,16 @@ class API:
     # old: get_user
     # typing hints et default arguments
     def get_user(self, 
-                 osu_id: int,
+                 user: str,
                  mode: str = "osu"):
 
-        r = requests.get(f'{self.url}/users/{osu_id}/{mode}', headers=self.headers)
+        r = requests.get(f'{self.url}/users/{user}/{mode}', headers=self.headers)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
         else:
             print(f"The request get_data_user failed. args : "
-                  f"\nosu_id: {osu_id}, mode: {mode} \nReason: {r.reason} ")
+                  f"\nuser: {user}, mode: {mode} \nReason: {r.reason} ")
         return dict
     
     
@@ -160,7 +161,7 @@ class API:
         return dict
     
     
-    def get_user_score(self, osu_id: int,
+    def get_user_score(self, user: str,
                              type: str,
                              offset: str,
                              include_fails: int,
@@ -174,13 +175,13 @@ class API:
             "offset": offset
         }
 
-        r = requests.get(f'{self.url}/users/{osu_id}/scores/{type}', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/users/{user}/scores/{type}', headers=self.headers, params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
         else:
             print(f"The request get_data_user_recent failed. args : "
-                  f"\nosu_id: {osu_id}, type: {type}, offset: {offset},"
+                  f"\nuser: {user}, type: {type}, offset: {offset},"
                   f"\ninclude_fails: {include_fails}, limit: {limit}, mode: {mode} \nReason: {r.reason}")
         return dict
     
@@ -188,42 +189,41 @@ class API:
     #old: get_data_user_score
     def get_user_beatmap_score(self, 
                                beatmap_id: int, 
-                               osu_id: int, 
-                               mods: str, 
+                               user: str,
                                mode: str = "osu"):
 
-        # "mods": f"{mods}" // TODO when available
+        # "mods": mods // TODO when available
         params = {
             "mode": mode,
         }
 
-        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{osu_id}', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{user}', headers=self.headers, params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
         else:
             print(f"The request get_data_user_score failed. args : "
-                  f"\nbeatmap_id: {beatmap_id}, osu_id: {osu_id}, mode: {mode} \nReason: {r.reason}")
+                  f"\nbeatmap_id: {beatmap_id}, user: {user}, mode: {mode} \nReason: {r.reason}")
         
         return dict
     
     # old: get_data_user_scores
     def get_user_beatmap_scores(self, 
                                 beatmap_id: int, 
-                                osu_id: int, 
+                                user: str, 
                                 mode: str = "osu"):
 
         params = {
             "mode": mode,
         }
 
-        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{osu_id}/all', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{user}/all', headers=self.headers, params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
         else:
             print(f"The request get_data_user_score failed. args : "
-                  f"\nbeatmap_id: {beatmap_id}, osu_id: {osu_id}, mode: {mode} \nReason: {r.reason}")
+                  f"\nbeatmap_id: {beatmap_id}, user: {user}, mode: {mode} \nReason: {r.reason}")
         return dict
     
     
