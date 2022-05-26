@@ -5,6 +5,7 @@ import discord
 from . import OsuAPIv2
 
 data_p = json.loads(open('players.json', "r").read())
+osu_modes = ["mania", "osu", "fruits", "taiko"]
 emotes = {
     "A": "<:A_:887380030450176030>",
     "B": "<:B_:887380030475362304>",
@@ -29,7 +30,7 @@ emotes = {
     "Supporter": "<:supporter:963811550903283742>"
 }
 
-def generate_embed_score(score, kind: str = ""):
+def generate_embed_score(score, kind: str = "", color: int = 0xff66aa):
     # pprint(score, depth=2)
     beatmap = score.get('beatmap')
     # possiblement pas de beatmapset
@@ -49,11 +50,7 @@ def generate_embed_score(score, kind: str = ""):
 
     print(f"{username} completed the map {title}")
     # wprint(f"{username} completed the map {title}")
-
-    color = 0xff66aa
-    for p in data_p:
-        if data_p[p]['osu_id'] == user.get('id'):
-            color = int(data_p[p]['color'], 16)
+            
 
     t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
 
@@ -116,8 +113,13 @@ def generate_embed_score(score, kind: str = ""):
     return embed
 
 
-def get_binded(ctx):
-    for p in data_p:
-        if str(ctx.author.id) == str(data_p[p]["discord_id"]):
-            return data_p[p]
+def get_binded(discord_id: int = 0, osu_id: int = 0):
+    if discord_id != 0:
+        for p in data_p:
+            if str(discord_id) == str(data_p[p]["discord_id"]):
+                return data_p[p]
+    else:
+         for p in data_p:
+            if str(osu_id) == str(data_p[p]["osu_id"]):
+                return data_p[p]
     return None

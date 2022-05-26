@@ -79,24 +79,53 @@ def is_it_me(ctx):
     return ctx.message.author.id == KEYS.my_id
 
 
-@client.command()
+@client.command(name="load",
+             brief="Charge un cog.",
+             hidden=True
+             )
 @commands.check(is_it_me)
 async def load(ctx, extension):
-    client.load_extension(f"OsuRank.cogs.{extension}")
-    print(f"{extension} loaded")
+    try:
+        client.load_extension(f"OsuRank.cogs.{extension}")
+    except discord.ext.commands.errors.ExtensionAlreadyLoaded as e:
+        print(e)
+        return await ctx.send(e)
+    await ctx.send(f"{extension} loaded." \
+                   f"\n{', '.join([c for c in client.cogs])} are currently loaded cogs.")
+    print(f"{extension} loaded." \
+          f"{', '.join([c for c in client.cogs])} are currently loaded cogs.")
 
-@client.command()
+@client.command(name="unload",
+             brief="Décharge un cog.",
+             hidden=True
+             )
 @commands.check(is_it_me)
 async def unload(ctx, extension):
-    client.unload_extension(f"OsuRank.cogs.{extension}")
-    print(f"{extension} unloaded")
+    try:
+        client.unload_extension(f"OsuRank.cogs.{extension}")
+    except discord.ext.commands.errors.ExtensionNotLoaded as e:
+        print(e)
+        return await ctx.send(e)
+    await ctx.send(f"{extension} unloaded." \
+                   f"\n{', '.join([c for c in client.cogs])} are currently loaded cogs.")
+    print(f"{extension} unloaded." \
+          f"{', '.join([c for c in client.cogs])} are currently loaded cogs.")
 
-@client.command()
+
+@client.command(name="reload",
+             brief="recharge un cog.",
+             hidden=True
+             )
 @commands.check(is_it_me)
 async def reload(ctx, extension):
-    client.unload_extension(f"OsuRank.cogs.{extension}")
-    client.load_extension(f"OsuRank.cogs.{extension}")
-    print(f"{extension} reloaded")
+    try:
+        client.unload_extension(f"OsuRank.cogs.{extension}")
+        client.load_extension(f"OsuRank.cogs.{extension}")
+    except (commands.ExtensionNotLoaded, commands.ExtensionAlreadyLoaded) as e:
+        print(e)
+        return await ctx.send(e)
+    await ctx.send(f"{extension} reloaded.")
+    print(f"{extension} reloaded.")
 
 
 for filename in os.listdir("./OsuRank/cogs"):

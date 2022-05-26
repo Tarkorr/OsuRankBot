@@ -1,3 +1,4 @@
+from typing_extensions import ParamSpecKwargs
 import discord
 from discord.ext import commands
 import asyncio
@@ -7,6 +8,7 @@ from PycordPaginator import Paginator
 import json
 import requests
 import os
+from pprint import pprint
 
 prefix = "!o "
 data_p = json.loads(open('players.json', "r").read())
@@ -63,7 +65,7 @@ class Osu_Render(commands.Cog):
             x = requests.post(url=URL + "renders", data=values, files=files)
             if x.status_code == 429:
                 return await ctx.send("Trop de requètes..."
-                                    "\nMerci de patienter quelques secondes avant de réessayer.")
+                                    f"\nMerci de patienter quelques secondes avant de réessayer. (dernière requète *{cooldown - current_time - datetime.timedelta(minutes=5, seconds=30)}*)")
             cooldown = datetime.datetime.now() + datetime.timedelta(minutes=5, seconds=30)
             data_p['Jarod']['cooldown'] = round(datetime.datetime.timestamp(cooldown))
             json.dump(data_p, open("players.json", "w"))
@@ -72,7 +74,12 @@ class Osu_Render(commands.Cog):
             if x.status_code == 201:
                 pot = x.json()
             else:
-                return await ctx.send("fail.")
+                return await ctx.send("__Erreur.__" \
+                                      f"\n*<@905448403092275230> requète de render:*" \
+                                      f"\n__status:__ [<:status_dnd:887380229943865374> {x.status_code}]." \
+                                      f"\n__time:__ {x.elapsed.total_seconds()}s" \
+                                      f"\n__Reason:__ {x.reason}"
+                                      f"\n__params:__ {values}")
 
             val = {
                 "renderID": pot.get('renderID')
@@ -107,16 +114,58 @@ class Osu_Render(commands.Cog):
                 usage=f"{prefix}skin [show, set] <id>",
                 brief=f"Affiche tous les skins disponibles pour `{prefix}render` 'set' pour définir le skin"
                 )
-    async def skin(self, ctx, param: str = "", skin_id: int = 177013):
+    async def skin(self, ctx, param: str = "", skin_id = None):
         print(f"commande 'skin' éxécuté par {ctx.author}")
         URL = "https://apis.issou.best/ordr/"
-        skins = requests.get(url=URL + "skins").json()['skins']
+        params = {
+            "pageSize": 1000,
+            "page": 1
+        }
+        skins = requests.get(url=URL + "skins", params=params).json()['skins']
+        # pprint(requests.get(url=URL + "skins").json())
+        # !o reload Osu_Render
         embeds = []
+        if param == "search":
+            p = {
+            "pageSize": 1000,
+            "page": 1,
+            "search": skin_id
+            }
+            sk = requests.get(url=URL + "skins", params=p).json()['skins']
+            limit = 0
+            a = ""
+            
+            if len(sk) < 10:
+                for el in sk:
+                    a = a + f"\n**{el['presentationName']}** (`{el['id']}`) \nby *{el['author']}*"      
+            
+                emb = discord.Embed().add_field(name='__Available Skins :__', value=a)
+                return await ctx.send(embed=emb)
+            
+            for el in sk:
+                if limit < 8:
+                    a = a + f"\n**{el['presentationName']}** (`{el['id']}`) \nby *{el['author']}*"
+                    limit += 1
+                else:
+                    a = a + f"\n**{el['presentationName']}** (`{el['id']}`) \nby *{el['author']}*"
+                    p = discord.Embed().add_field(name='__Available Skins :__', value=a)
+                    embeds.append(p)
+                    limit = 0
+                    a = ""
+
+            e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
+                        only=ctx.author, ctx=ctx, use_select=False)
+            return await e.start()
 
         if param == "set":
-            if skin_id == 177013:
+            if skin_id == None:
                 return await ctx.send("il manque l'`id` du skin."
                                     "\n__exemple:__ `!o set 23` avec pour `id` 23.")
+            try:
+                skin_id = int(skin_id)
+            except ValueError as V:
+                return await ctx.send("l'`id` du skin, n'est pas un id de skin."
+                                      "\n__exemple:__ `!o set 23` avec pour `id` 23.")
             for p in data_p:
                 if data_p[p]["discord_id"] == ctx.author.id:
                     for el in skins:
@@ -132,7 +181,7 @@ class Osu_Render(commands.Cog):
                             return await ctx.send(embed=embed)
 
                     return await ctx.send(f"`{skin_id}` n'est pas valide."
-                                        f"la liste de skin et de leurs ids est visible en faisant `{prefix}skin`")
+                                        f"\nla liste de skin et de leurs ids est visible en faisant `{prefix}skin`")
             return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
                                 f"\nil faut être bind avec le bot, exécute la commande "
                                 f"`{prefix}bind (url de ton profil osu)`")
