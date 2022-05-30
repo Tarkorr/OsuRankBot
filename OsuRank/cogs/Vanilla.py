@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from PycordPaginator import Paginator
 
 prefix = "!o "
 
@@ -18,32 +19,45 @@ class Vanilla(commands.Cog):
              hidden=True)
     async def hlp(self, ctx):
         print(f"commande 'help' éxécuté par {ctx.author}")
+        embeds = []
+        
         embed = discord.Embed(title=f"__commande help :__", color=0xff69b4)
         embed.add_field(name=f"**__liste des commandes:__**",
                         value="",
                         inline=False)
+        
         for command in self.client.commands:
             if not command.hidden:
-                index = len(embed.fields) - 1
-                field = embed.fields[index]
+                
+                field = embed.fields[0]
+                
                 if len(field.value) > 900:
-                    embed.add_field(name="═" * 20 + f"> {index + 1} <" + "═" * 20,
-                                    value="",
-                                    inline=False)
 
-                field = embed.fields[len(embed.fields) - 1]
+                    embeds.append(embed.copy())
+                    embed = discord.Embed(title=f"__commande help :__", color=0xff69b4)
+                    embed.add_field(name=f"**__liste des commandes:__**",value="",inline=False)
+                    field = embed.fields[0]
+
 
                 if command.aliases:
-                    embed.set_field_at(len(embed.fields) - 1, name=field.name,
+                    embed.set_field_at(0, name=field.name,
                                     value=field.value + f"**__{command.name} :__** {command.brief}"
                                                         f"\n*__usage :__* `{command.usage}`"
                                                         f"\n*__alias :__* {' '.join(command.aliases)}\n\n", inline=False)
                 else:
-                    embed.set_field_at(len(embed.fields) - 1, name=field.name,
+                    embed.set_field_at(0, name=field.name,
                                     value=field.value + f"**__{command.name} :__** {command.brief}"
                                                         f"\n*__usage :__* `{command.usage}`\n\n",
                                     inline=False)
-        await ctx.send(embed=embed)
+        if len(embed.fields[0].value) != 0:
+            embeds.append(embed.copy())
+        
+        if len(embeds) > 1:
+            e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
+                            only=ctx.author, ctx=ctx, use_select=False)
+            return await e.start()
+        else:
+            return await ctx.send(embed=embeds[0])
 
 
     @commands.command(name="ban",

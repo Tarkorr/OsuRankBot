@@ -103,11 +103,12 @@ class Osu(commands.Cog):
                 user_id = os.path.split(embed.author.url)[1]
                 beatmap_id = os.path.split(embed.url)[1]
 
-                mode = self.API.get_user_beatmap_score(beatmap_id=beatmap_id, user=user_id).get('score')
-                if mode != None:
-                    mode = mode.get('mode')
+                score = self.API.get_user_beatmap_score(beatmap_id=beatmap_id, user=user_id).get('score')
+                
+                if score != None:
+                    mode = str(score.get('mode'))
                 else:
-                    await message.edit("UwUn't, ptit prob réessaies.")
+                    return await message.edit("UwUn't, ptit prob réessaies.")
                 recent_maps = self.API.get_user_score(user=user_id, mode=mode, score_type='recent')
                 for beatmap in recent_maps:
                     if beatmap_id == str(beatmap["beatmap"]["id"]):
@@ -252,7 +253,7 @@ class Osu(commands.Cog):
 
         play = self.API.get_user_score(user = osu_id, score_type = "recent", mode = mode, limit = 1)
 
-        if play == {}:
+        if play == {} or play == []:
             return await ctx.send(f"{username} n'a pas de parties récentes.")
         else:
             play = play[0]
