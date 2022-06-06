@@ -126,6 +126,28 @@ class Osu(commands.Cog):
             return
 
     
+    @commands.command(aliases=['t'],
+             name="tournament",
+             usage=f"{prefix}tournament <user1> <user2> <bo>",
+             brief="permet de faire un petit 'best of' (bo) entre 2 personnes."
+             )
+    async def tournament(self, ctx, user1: str = "", user2: str = "", bo: int = 3):
+        print(f"commande 'tournament' éxécuté par {ctx.author}")
+        # :white_large_square:  :blue_square:  :red_square:
+
+        embed_score = discord.Embed(title=f"__{user1} vs {user2}:__", color=0xff69b4)
+
+        base = ":white_large_square:"
+        bo = int((bo + 1) / 2)
+        embed_score.add_field(name=f"__{user1}:__", value=f"{base * bo}", inline=True)
+        embed_score.add_field(name=f"__{user2}:__", value=f"{base * bo}", inline=True)
+        embed_score.set_footer(text=ctx.author.display_name, icon_url=ctx.author.avatar_url)
+        score = await ctx.send(embed=embed_score)
+        emojis = ['🟦', '🟥', '🔄']
+        for emoji in emojis:
+            await score.add_reaction(emoji)
+    
+    
     @commands.command(name="display_score",
              aliases=["dp"],
              usage=f"{prefix}display_score <user> <mode>",

@@ -13,12 +13,16 @@ class API:
         self.cfg = json.loads(open("config_OSU.json", "r").read())
         
         self.url = "https://osu.ppy.sh/api/v2"
-        self.headers = {
+    
+    
+    def head(self, token):
+        return {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.get_token()}'
+            'Authorization': f'Bearer {token}'
         }
-        
+
+
     # TOKEN 
     def get_token(self):
         
@@ -44,8 +48,9 @@ class API:
     # get_data_beatmap
     def get_beatmap(self, 
                     beatmap_id: int):
+        print(self.head(self.get_token()))
 
-        r = requests.get(f'{self.url}/beatmaps/{str(beatmap_id)}', headers=self.headers)
+        r = requests.get(f'{self.url}/beatmaps/{str(beatmap_id)}', headers=self.head(self.get_token()))
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -62,7 +67,7 @@ class API:
             "ids": ids
         }
 
-        r = requests.get(f'{self.url}/beatmaps', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmaps', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -79,7 +84,7 @@ class API:
             "mode": mode
         }
 
-        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -93,7 +98,7 @@ class API:
     def get_beatmapset(self, 
                        beatmapset_id: int):
 
-        r = requests.get(f'{self.url}/beatmapsets/{beatmapset_id}', headers=self.headers)
+        r = requests.get(f'{self.url}/beatmapsets/{beatmapset_id}', headers=self.head(self.get_token()))
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -114,7 +119,7 @@ class API:
             "beatmapset_status": beatmapset_status
         }
 
-        r = requests.get(f'{self.url}/beatmapsets/events', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmapsets/events', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -134,7 +139,7 @@ class API:
                  user: str,
                  mode: str = "osu"):
 
-        r = requests.get(f'{self.url}/users/{user}/{mode}', headers=self.headers)
+        r = requests.get(f'{self.url}/users/{user}/{mode}', headers=self.head(self.get_token()))
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -151,7 +156,7 @@ class API:
             "ids": ids
         }
 
-        r = requests.get(f'{self.url}/users', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/users', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -175,7 +180,7 @@ class API:
             # "offset": offset
         }
 
-        r = requests.get(f'{self.url}/users/{user}/scores/{score_type}', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/users/{user}/scores/{score_type}', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -197,7 +202,7 @@ class API:
             "mode": mode,
         }
 
-        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{user}', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{user}', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -216,7 +221,7 @@ class API:
             "mode": mode,
         }
 
-        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{user}/all', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/beatmaps/{beatmap_id}/scores/users/{user}/all', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -241,7 +246,7 @@ class API:
             "page": page
         }
 
-        r = requests.get(f'{self.url}/search', headers=self.headers, params=params)
+        r = requests.get(f'{self.url}/search', headers=self.head(self.get_token()), params=params)
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
