@@ -114,7 +114,7 @@ class Osu_Render(commands.Cog):
                 usage=f"{prefix}skin [show, set] <id>",
                 brief=f"Affiche tous les skins disponibles pour `{prefix}render` 'set' pour définir le skin"
                 )
-    async def skin(self, ctx, param: str = "", skin_id = None):
+    async def skin(self, ctx, param: str = "", skin_id = ""):
         print(f"commande 'skin' éxécuté par {ctx.author}")
         URL = "https://apis.issou.best/ordr/"
         params = {
@@ -187,20 +187,23 @@ class Osu_Render(commands.Cog):
                                 f"`{prefix}bind (url de ton profil osu)`")
 
         if param == "show":
-            if type(skin_id) == int:
-                for el in skins:
-                    if skin_id == el['id']:
-                        user_skin = str([data_p[p].get('skin') for p in data_p if data_p[p]["discord_id"] == ctx.author.id])
-                        em = "#"
-                        print(f"{user_skin}", skin_id)
-                        if str(f"[{skin_id}]") == user_skin:
-                            em = ":white_check_mark:"
-                        embed = discord.Embed().add_field(name=f"{em} **__{el['presentationName']}__**",
-                                                        value=f"by *{el['author']}* - [[Download]({el['url']})]"
-                                                                f"\n*(les images prennent un peu de temps à charger)*")
-                        embed.set_image(url=el['gridPreview']).set_thumbnail(url=el['highResPreview'])
-                        return await ctx.send(embed=embed)
-                return await ctx.send(f"`{skin_id}` n'est pas un id valide.")
+            try:
+                skin_id = int(skin_id)
+            except ValueError:
+                return await ctx.send(f"`{skin_id}` n'est pas un id de skin.")
+            
+            for el in skins:
+                if skin_id == el['id']:
+                    user_skin = str([data_p[p].get('skin') for p in data_p if data_p[p]["discord_id"] == ctx.author.id])
+                    em = "#"
+                    if str(f"[{skin_id}]") == user_skin:
+                        em = ":white_check_mark:"
+                    embed = discord.Embed().add_field(name=f"{em} **__{el['presentationName']}__**",
+                                                    value=f"by *{el['author']}* - [[Download]({el['url']})]"
+                                                            f"\n*(les images prennent un peu de temps à charger)*")
+                    embed.set_image(url=el['gridPreview']).set_thumbnail(url=el['highResPreview'])
+                    return await ctx.send(embed=embed)
+            return await ctx.send(f"`{skin_id}` n'est pas un id valide.")
         else:
             limit = 0
             a = ""
