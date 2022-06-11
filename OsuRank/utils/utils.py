@@ -2,6 +2,7 @@ import datetime
 import json
 import time
 import discord
+from pprint import pprint
 from . import OsuAPIv2
 
 data_p = json.loads(open('players.json', "r").read())
@@ -110,6 +111,82 @@ def generate_embed_score(score, kind: str = "", color: int = 0xff66aa):
                                                         f"__Accuracy:__ `{round(score.get('accuracy') * 100, 2)} %`",
                     inline=True)
 
+    return embed
+
+#
+#
+# Xiiano_ Sucks
+#
+#
+def generate_embed_score_2(score, kind: str = "", color: int = 0xff66aa):
+    # pprint(score, depth=2)
+    beatmap = score.get('beatmap')
+    # possiblement pas de beatmapset
+    beatmapset = score.get('beatmapset')
+    if beatmapset is None:
+        beatmapset = OsuAPIv2.get_data_beatmapset(beatmap.get('beatmapset_id'))
+    
+    pprint(score)
+    pprint(beatmapset)
+    # beurk change >>>
+    if beatmapset is None:
+        return print("beatmapset is None shrug")
+
+    stats = score.get('statistics')
+    user = score.get('user')
+
+    username = user.get('username')
+    
+    print(f"{username} completed the map {beatmapset.get('title')}")
+    # wprint(f"{username} completed the map {title}")
+            
+
+    t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
+
+    embed = discord.Embed(title=f"**{beatmapset.get('artist')} - {beatmapset.get('title')} \n[{beatmap.get('version')}]**",url=beatmap.get('url'),
+                          color=color,timestamp=t)
+    
+    if score.get("mode") == "mania":
+        img_mode = "https://i.imgur.com/NVkykfe.png"
+    elif score.get("mode") == "osu":
+        img_mode = "https://i.imgur.com/bnSSOS9.png"
+    elif score.get("mode") == "fruits":
+        img_mode = "https://i.imgur.com/MjOv5Kd.png"
+    else:
+        img_mode = "https://i.imgur.com/iSQFSTn.png"
+
+    embed.set_thumbnail(url=img_mode)
+    embed.set_image(url=beatmapset.get('covers').get('card'))
+    
+    embed.set_author(name=f"[☆] {username} {kind} osu!{score.get('mode')} play.", url=f"https://osu.ppy.sh/users/{user.get('id')}", icon_url=user.get('avatar_url'))
+    
+    # ☆☆☆
+    length = str(time.strftime('%M:%S', time.gmtime(int(beatmap.get("total_length")))))
+    stars = float(beatmap.get('difficulty_rating'))
+    emote_rank = emotes.get(score.get("rank"))
+    if score.get("pp") is not None:
+        pp = float(round(score.get('pp'), 2))
+    else:
+        pp = 0
+    
+    if not score.get('mods'):
+        mods = "NM"
+    else:
+        mods = ', '.join(score.get('mods'))
+        
+    best_combo = int(beatmap.get('count_circles')) + int(beatmap.get('count_sliders')) + int(beatmap.get('count_spinners'))
+
+    embed.add_field(name="Score informations", value=f" ▸  {emote_rank} **{round(score.get('accuracy') * 100, 2)}% {pp}pp** +{mods} {int(score.get('max_combo'))}/{best_combo}x"
+                                                     f"\n ▸ {{ {int(stats.get('count_100'))}x100, {int(stats.get('count_50'))}x50, {int(stats.get('count_miss'))}xM }} ", 
+                    inline=False)
+
+    emote_rank = emotes.get(score.get("rank"))
+    embed.add_field(name=f"Beatmap informations", value=f"**{beatmapset.get('status').capitalize()} ⭐ {stars} | {length} @ 🎵 {float(beatmap.get('bpm'))}**"
+                                                        f"\n**AR** {float(beatmap.get('ar'))} **OD** {float(beatmap.get('accuracy'))} **[[Download](https://akatsuki.pw/d/{beatmapset.get('id')})]**",
+                    inline=False)
+    
+    embed.set_footer(text="(Aika version)")
+    
     return embed
 
 
