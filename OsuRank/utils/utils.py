@@ -2,8 +2,11 @@ import datetime
 import json
 import time
 import discord
+import requests
+import rosu_pp_py
+import enum
 from pprint import pprint
-from . import OsuAPIv2
+from . import OsuAPIv3
 
 data_p = json.loads(open('players.json', "r").read())
 osu_modes = ["mania", "osu", "fruits", "taiko"]
@@ -37,7 +40,7 @@ def generate_embed_score(score, kind: str = "", color: int = 0xff66aa):
     # possiblement pas de beatmapset
     beatmapset = score.get('beatmapset')
     if beatmapset is None:
-        beatmapset = OsuAPIv2.get_data_beatmapset(beatmap.get('beatmapset_id'))
+        beatmapset = OsuAPIv3.API().get_beatmapset(beatmap.get('beatmapset_id'))
     
     # beurk change >>>
     if beatmapset is None:
@@ -55,7 +58,7 @@ def generate_embed_score(score, kind: str = "", color: int = 0xff66aa):
 
     t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
 
-    embed = discord.Embed(title="**" + title + "**",
+    embed = discord.Embed(title=f"**{title}**",
                           url=beatmap.get('url'),
                           color=color,
                           timestamp=t
@@ -77,7 +80,7 @@ def generate_embed_score(score, kind: str = "", color: int = 0xff66aa):
         img_mode = "https://i.imgur.com/iSQFSTn.png"
 
     embed.set_thumbnail(url=img_mode)
-    embed.set_image(url=beatmapset.get('covers').get('card'))
+    embed.set_image(url=beatmapset['covers'].get('card'))
     embed.set_author(name=f"{beatmap.get('status')} completed by {username}", url="https://osu.ppy.sh/users/"
                                                                                   + str(user.get('id')),
                      icon_url=user.get('avatar_url'))
@@ -113,24 +116,21 @@ def generate_embed_score(score, kind: str = "", color: int = 0xff66aa):
 
     return embed
 
-#
-#
-# Xiiano_ Sucks
-#
-#
+# ============================= #
+#                               #
+#          AIKA v1.1.5          #
+#                               #
+# ============================= #
 def generate_embed_score_2(score, kind: str = "", color: int = 0xff66aa):
-    # pprint(score, depth=2)
+
     beatmap = score.get('beatmap')
     # possiblement pas de beatmapset
     beatmapset = score.get('beatmapset')
     if beatmapset is None:
-        beatmapset = OsuAPIv2.get_data_beatmapset(beatmap.get('beatmapset_id'))
+        beatmapset = OsuAPIv3.API().get_beatmapset(beatmap.get('beatmapset_id'))
     
     pprint(score)
     pprint(beatmapset)
-    # beurk change >>>
-    if beatmapset is None:
-        return print("beatmapset is None shrug")
 
     stats = score.get('statistics')
     user = score.get('user')
@@ -156,7 +156,7 @@ def generate_embed_score_2(score, kind: str = "", color: int = 0xff66aa):
         img_mode = "https://i.imgur.com/iSQFSTn.png"
 
     embed.set_thumbnail(url=img_mode)
-    embed.set_image(url=beatmapset.get('covers').get('card'))
+    embed.set_image(url=beatmapset['covers'].get('card'))
     
     embed.set_author(name=f"[☆] {username} {kind} osu!{score.get('mode')} play.", url=f"https://osu.ppy.sh/users/{user.get('id')}", icon_url=user.get('avatar_url'))
     
@@ -181,11 +181,57 @@ def generate_embed_score_2(score, kind: str = "", color: int = 0xff66aa):
                     inline=False)
 
     emote_rank = emotes.get(score.get("rank"))
-    embed.add_field(name=f"Beatmap informations", value=f"**{beatmapset.get('status').capitalize()} ⭐ {stars} | {length} @ 🎵 {float(beatmap.get('bpm'))}**"
+    embed.add_field(name=f"Beatmap informations", value=f"**{str(beatmapset.get('status')).capitalize()} ⭐ {stars} | {length} @ 🎵 {float(beatmap.get('bpm'))}**"
                                                         f"\n**AR** {float(beatmap.get('ar'))} **OD** {float(beatmap.get('accuracy'))} **[[Download](https://akatsuki.pw/d/{beatmapset.get('id')})]**",
                     inline=False)
     
     embed.set_footer(text="(Aika version)")
+    
+    return embed
+
+
+# ============================= #
+#                               #
+#              owo!             #
+#   'osu!std only               #
+# ============================= #
+def generate_embed_score_3(score, kind: str = "", color: int = 0xff66aa):
+
+    beatmap = score.get('beatmap')
+    # possiblement pas de beatmapset
+    beatmapset = score.get('beatmapset')
+    if beatmapset is None:
+        beatmapset = OsuAPIv3.API().get_beatmapset(beatmap.get('beatmapset_id'))
+
+
+    stats = score.get('statistics')
+
+    mods = score.get('mods')
+    if mods == None:
+        mods = ["NM"]
+    
+    # ☆☆☆
+    emote_rank = emotes.get(score.get("rank"))
+    accuracy = score.get('accuracy') * 100
+    
+    open("temp.osu", "wb" ).write(requests.get(f"https://osu.ppy.sh/osu/{beatmap.get('id')}").content)
+    calculator = rosu_pp_py.Calculator("temp.osu")
+    
+    ParamNormal = rosu_pp_py.ScoreParams(acc=accuracy, mods=sum([Mods[k].value for k in mods]), n300=stats.get('count_300'), n100=stats.get('count_100'), n50=stats.get('count_50'), nMisses=stats.get('count_miss'), nKatu=stats.get('count_katu'), combo=score.get("max_combo"), score=score.get('score'))
+    ParamFC = rosu_pp_py.ScoreParams(acc=accuracy, mods=sum([Mods[k].value for k in mods]))
+    
+    result = calculator.calculate([ParamNormal, ParamFC])
+    print(result[0])
+    
+    t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
+
+    embed = discord.Embed(color=color, timestamp=t, 
+                          description=f" ► {emote_rank} ▸ **{round(result[0].pp, 2)}pp** ({round(result[1].pp, 2)} for {round(accuracy, 2)}% FC) ▸ {round(accuracy, 2)}%"
+                                      f"\n ► {score.get('score'):,} ▸ x{int(score.get('max_combo'))}/{result[1].maxCombo} ▸ [{int(stats.get('count_300'))}/{int(stats.get('count_100'))}/{int(stats.get('count_50'))}/{int(stats.get('count_miss'))}]")
+    
+    embed.set_thumbnail(url=beatmapset['covers'].get('card'))
+    embed.set_author(name=f"{beatmapset.get('title')} [{beatmap.get('version')}]  + {', '.join(mods)} [{float(beatmap.get('difficulty_rating'))}★]", url=beatmap.get('url'), icon_url=score['user'].get('avatar_url'))
+    embed.set_footer(text="(owo! version)")
     
     return embed
 
@@ -200,3 +246,30 @@ def get_binded(discord_id: int = 0, osu_id: int = 0):
             if str(osu_id) == str(data_p[p]["osu_id"]):
                 return data_p[p]
     return None
+
+
+class Mods(enum.IntFlag):
+    NM = 0
+    NF = 1
+    EZ = 2
+    HD = 8
+    HR = 16
+    SD = 32
+    DT = 64
+    RL = 128
+    HT = 256
+    NC = 512  # Only set along with DoubleTime. i.e: NC only gives 576
+    FL = 1024
+    AT = 2048
+    SO = 4096
+    AP = 8192  # Autopilot
+    PF = 16384  # Only set along with SuddenDeath. i.e: PF only gives 16416  
+    FI = 1048576
+    RD = 2097152
+    CM = 4194304
+    TP = 8388608
+    CP = 33554432
+    SV2= 536870912
+    MR = 1073741824
+    FreeModAllowed = NF | EZ | HD | HR | SD | FL | FI | RL | AP | SO
+    ScoreIncreaseMods = HD | HR | DT | FL | FI

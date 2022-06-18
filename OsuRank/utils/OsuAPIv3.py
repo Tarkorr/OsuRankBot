@@ -48,7 +48,6 @@ class API:
     # get_data_beatmap
     def get_beatmap(self, 
                     beatmap_id: int):
-        print(self.head(self.get_token()))
 
         r = requests.get(f'{self.url}/beatmaps/{str(beatmap_id)}', headers=self.head(self.get_token()))
 

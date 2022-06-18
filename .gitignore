@@ -2,6 +2,8 @@
 .idea
 config_OSU.json
 players.json
+test.py
+temp.osu
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
