@@ -279,7 +279,7 @@ class Osu(commands.Cog):
         else:
             play = play[0]
 
-        rank_embed = await ctx.send(embed=utils.generate_embed_score_5(play, "Last ", color))
+        rank_embed = await ctx.send(embed=utils.generate_embed_score(play, "Last ", color))
         for emoji in ['🏆', '⏰']:
             await rank_embed.add_reaction(emoji)
 

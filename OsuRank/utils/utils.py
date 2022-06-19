@@ -262,7 +262,6 @@ def generate_embed_score_4(score, kind: str = "", color: int = 0xff66aa):
     user = score['user']
     user_stats = OsuAPIv3.API().get_user(user=user.get('id'))["statistics"]
     
-    c = OsuAPIv3.API().get_user_beatmap_score(beatmap.get('id'), user=user.get('id'), mode=score.get('mode'))["position"]
     best_scores = OsuAPIv3.API().get_user_score(user=user.get('id'), score_type="best", offset="20", limit=150, mode=score.get('mode'))
     desc = ""
     a = 0
@@ -318,6 +317,63 @@ def generate_embed_score_4(score, kind: str = "", color: int = 0xff66aa):
     stars = beatmap.get('difficulty_rating')
     embed.add_field(name=f"**Maps Info**", value=f"length: `{length}` (`0:00`) BPM: `{beatmap.get('bpm')}` Objects: `{beatmap.get('count_circles') + beatmap.get('count_sliders') + beatmap.get('count_spinners')}` \nCS: `{beatmap.get('cs')}` AR: `{beatmap.get('ar')}` OD: `{beatmap.get('accuracy')}` HP: `{beatmap.get('drain')}` Stars: `{beatmap.get('difficulty_rating')}`", inline=False)
     embed.set_footer(text=f"{beatmap.get('status').capitalize()} map by {beatmapset.get('creator')} - (Bathbot version)")
+    
+    return embed
+
+
+# ============================= #
+#                               #
+#              owo!             #
+# osu!std only                  #
+# ============================= #
+def generate_embed_score_5(score, kind: str = "", color: int = 0xff66aa):
+
+    beatmap = score.get('beatmap')
+    # possiblement pas de beatmapset
+    beatmapset = score.get('beatmapset')
+    if beatmapset is None:
+        beatmapset = OsuAPIv3.API().get_beatmapset(beatmap.get('beatmapset_id'))
+
+
+    stats = score.get('statistics')
+
+    mods = score.get('mods')
+    if mods == None:
+        mods = ["NM"]
+    
+    # ☆☆☆
+    emote_rank = emotes.get(score.get("rank"))
+    accuracy = score.get('accuracy') * 100
+    user = score['user']
+    user_stats = OsuAPIv3.API().get_user(user=user.get('id'))["statistics"]
+    
+    open("temp.osu", "wb" ).write(requests.get(f"https://osu.ppy.sh/osu/{beatmap.get('id')}").content)
+    calculator = rosu_pp_py.Calculator("temp.osu")
+    
+    ParamNormal = rosu_pp_py.ScoreParams(acc=accuracy, mods=sum([Mods[k].value for k in mods]), n300=stats.get('count_300'), n100=stats.get('count_100'), n50=stats.get('count_50'), nMisses=stats.get('count_miss'), nKatu=stats.get('count_katu'), combo=score.get("max_combo"), score=score.get('score'))
+    ParamFC = rosu_pp_py.ScoreParams(acc=accuracy, mods=sum([Mods[k].value for k in mods]))
+    
+    result = calculator.calculate([ParamNormal, ParamFC])
+    print(result[0])
+    
+    t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
+    t = round(datetime.datetime.timestamp(t))
+    best_scores = OsuAPIv3.API().get_user_score(user=user.get('id'), score_type="best", offset="20", limit=150, mode=score.get('mode'))
+    desc = ""
+    a = 0
+    for s in best_scores:
+        a += 1
+        if score.get('best_id') == s.get('id'):
+            desc = str(a)
+
+    embed = discord.Embed(color=color,
+                          description=f"{desc}{'.' if desc != '' else ''} {emote_rank} [{beatmapset.get('title')} [{beatmap.get('version')}]]({beatmap.get('url')}) {'+' if mods != [] else ''}{''.join(mods)} [{float(beatmap.get('difficulty_rating'))}★]"
+                                      f"\n{score.get('score'):,} ◦ {round(accuracy, 2)}% ◦ {round(result[0].pp, 2)}pp  "
+                                      f"\n**x{int(score.get('max_combo'))}**/{result[1].maxCombo} ◦ `[{int(stats.get('count_300'))} ● {int(stats.get('count_100'))} ● {int(stats.get('count_50'))} ● {int(stats.get('count_miss'))}]` <t:{t}:R>")
+    
+    embed.set_thumbnail(url=beatmapset['covers'].get('list'))
+    embed.set_author(name=f"{user.get('username')}: {user_stats.get('pp')}pp ⇨ #{user_stats.get('global_rank'):,} ({{server}})", url=f"https://osu.ppy.sh/users/{str(user.get('id'))}", icon_url=score['user'].get('avatar_url'))
+    embed.set_footer(text="(gurabot version)")
     
     return embed
 
