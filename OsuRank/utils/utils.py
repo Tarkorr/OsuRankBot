@@ -193,7 +193,7 @@ def generate_embed_score_2(score, kind: str = "", color: int = 0xff66aa):
 # ============================= #
 #                               #
 #              owo!             #
-#   'osu!std only               #
+# osu!std only                  #
 # ============================= #
 def generate_embed_score_3(score, kind: str = "", color: int = 0xff66aa):
 
@@ -226,12 +226,98 @@ def generate_embed_score_3(score, kind: str = "", color: int = 0xff66aa):
     t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
 
     embed = discord.Embed(color=color, timestamp=t, 
-                          description=f" ► {emote_rank} ▸ **{round(result[0].pp, 2)}pp** ({round(result[1].pp, 2)} for {round(accuracy, 2)}% FC) ▸ {round(accuracy, 2)}%"
+                          description=f" ► {emote_rank} ▸ **{round(result[0].pp, 2)}pp** ({round(result[1].pp, 2)}pp for {round(accuracy, 2)}% FC) ▸ {round(accuracy, 2)}%"
                                       f"\n ► {score.get('score'):,} ▸ x{int(score.get('max_combo'))}/{result[1].maxCombo} ▸ [{int(stats.get('count_300'))}/{int(stats.get('count_100'))}/{int(stats.get('count_50'))}/{int(stats.get('count_miss'))}]")
     
-    embed.set_thumbnail(url=beatmapset['covers'].get('card'))
+    embed.set_thumbnail(url=beatmapset['covers'].get('list'))
     embed.set_author(name=f"{beatmapset.get('title')} [{beatmap.get('version')}]  + {', '.join(mods)} [{float(beatmap.get('difficulty_rating'))}★]", url=beatmap.get('url'), icon_url=score['user'].get('avatar_url'))
     embed.set_footer(text="(owo! version)")
+    
+    return embed
+
+
+# ============================= #
+#                               #
+#           Bathbot!            #
+# osu!std only                  #
+# ============================= #
+def generate_embed_score_4(score, kind: str = "", color: int = 0xff66aa):
+
+    beatmap = score.get('beatmap')
+    # possiblement pas de beatmapset
+    beatmapset = score.get('beatmapset')
+    if beatmapset is None:
+        beatmapset = OsuAPIv3.API().get_beatmapset(beatmap.get('beatmapset_id'))
+
+
+    stats = score.get('statistics')
+    # pprint(score)
+    
+    # score_id = score.get('id')
+
+    mods = score.get('mods')
+    # ☆☆☆
+    emote_rank = emotes.get(score.get("rank"))
+    accuracy = score.get('accuracy') * 100
+    user = score['user']
+    user_stats = OsuAPIv3.API().get_user(user=user.get('id'))["statistics"]
+    
+    c = OsuAPIv3.API().get_user_beatmap_score(beatmap.get('id'), user=user.get('id'), mode=score.get('mode'))["position"]
+    best_scores = OsuAPIv3.API().get_user_score(user=user.get('id'), score_type="best", offset="20", limit=150, mode=score.get('mode'))
+    desc = ""
+    a = 0
+    for s in best_scores:
+        a += 1
+        if score.get('best_id') == s.get('id'):
+            desc = f" ► Personnal best #{a}"
+    
+    open("temp.osu", "wb" ).write(requests.get(f"https://osu.ppy.sh/osu/{beatmap.get('id')}").content)
+    calculator = rosu_pp_py.Calculator("temp.osu")
+    
+    ParamNormal = rosu_pp_py.ScoreParams(acc=accuracy, mods=sum([Mods[k].value for k in mods]), n300=stats.get('count_300'), n100=stats.get('count_100'), n50=stats.get('count_50'), nMisses=stats.get('count_miss'), nKatu=stats.get('count_katu'), combo=score.get("max_combo"), score=score.get('score'))
+    ParamFC = rosu_pp_py.ScoreParams(mods=sum([Mods[k].value for k in mods]), n300=stats.get('count_300'), n100=stats.get('count_100'), n50=stats.get('count_50'), nMisses=0)
+    ParamBEST = rosu_pp_py.ScoreParams(mods=sum([Mods[k].value for k in mods]))
+    
+    result = calculator.calculate([ParamNormal, ParamFC, ParamBEST])
+    print(result[0])
+    
+    t = datetime.datetime.strptime(score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
+
+    embed = discord.Embed(title=f"**{beatmapset.get('artist')} - {beatmapset.get('title')} [{beatmap.get('version')}]**",url=beatmap.get('url'), color=color, timestamp=t ,description=desc)
+    # embed.set_thumbnail(url=beatmapset.get('covers').get('list'))
+    # img_osu: "https://i.imgur.com/bnSSOS9.png"
+    # img_mania: "https://i.imgur.com/NVkykfe.png"
+    # img_taiko: "https://i.imgur.com/iSQFSTn.png"
+    # img_ctb: "https://i.imgur.com/MjOv5Kd.png"
+
+    if score.get("mode") == "mania":
+        img_mode = "https://i.imgur.com/NVkykfe.png"
+    elif score.get("mode") == "osu":
+        img_mode = "https://i.imgur.com/bnSSOS9.png"
+    elif score.get("mode") == "fruits":
+        img_mode = "https://i.imgur.com/MjOv5Kd.png"
+    else:
+        img_mode = "https://i.imgur.com/iSQFSTn.png"
+
+    embed.set_thumbnail(url=img_mode)
+    embed.set_image(url=beatmapset['covers'].get('cover'))
+    embed.set_author(name=f"{user.get('username')}: {user_stats.get('pp')}pp (#{user_stats.get('global_rank'):,} {user.get('country_code')}{user_stats.get('country_rank'):,})", url=f"https://osu.ppy.sh/users/{str(user.get('id'))}",
+                     icon_url=user.get('avatar_url'))
+    embed.add_field(name="Grade", value=f"{emote_rank} {'+' if mods != [] else ''}{''.join(mods)}")
+    embed.add_field(name="Score", value=f"{score.get('score'):,}")
+    embed.add_field(name="Acc", value=f"{round(accuracy, 2)}%")
+    embed.add_field(name="PP", value=f"**{round(result[0].pp, 2)}**/{round(result[2].pp, 2)}")
+    embed.add_field(name="Combo", value=f"**{int(score.get('max_combo'))}x**/{result[2].maxCombo}x")
+    embed.add_field(name="Hits", value=f"{{{int(stats.get('count_300'))}/{int(stats.get('count_100'))}/{int(stats.get('count_50'))}/{int(stats.get('count_miss'))}}}")
+    embed.add_field(name="If FC: PP", value=f"**{round(result[1].pp, 2)}**/{round(result[2].pp, 2)}")
+    embed.add_field(name="Acc", value=f"{round(accuracy, 2)}%")
+    embed.add_field(name="Hits", value=f"{{{int(stats.get('count_300'))}/{int(stats.get('count_100'))}/{int(stats.get('count_50'))}/0}}")
+    
+    # ☆☆☆
+    length = str(time.strftime('%M:%S', time.gmtime(int(beatmap.get("total_length")))))
+    stars = beatmap.get('difficulty_rating')
+    embed.add_field(name=f"**Maps Info**", value=f"length: `{length}` (`0:00`) BPM: `{beatmap.get('bpm')}` Objects: `{beatmap.get('count_circles') + beatmap.get('count_sliders') + beatmap.get('count_spinners')}` \nCS: `{beatmap.get('cs')}` AR: `{beatmap.get('ar')}` OD: `{beatmap.get('accuracy')}` HP: `{beatmap.get('drain')}` Stars: `{beatmap.get('difficulty_rating')}`", inline=False)
+    embed.set_footer(text=f"{beatmap.get('status').capitalize()} map by {beatmapset.get('creator')} - (Bathbot version)")
     
     return embed
 

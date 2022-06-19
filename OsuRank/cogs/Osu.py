@@ -251,7 +251,6 @@ class Osu(commands.Cog):
                 return await ctx.send(f"erreur {username} n'éxiste pas.")
             
             osu_id = str(data_m.get('id'))
-            mode = str(data_m.get('mode'))
             username = str(data_m.get('username'))
         
         # Sinon
@@ -280,7 +279,7 @@ class Osu(commands.Cog):
         else:
             play = play[0]
 
-        rank_embed = await ctx.send(embed=utils.generate_embed_score(play, "Last ", color))
+        rank_embed = await ctx.send(embed=utils.generate_embed_score_5(play, "Last ", color))
         for emoji in ['🏆', '⏰']:
             await rank_embed.add_reaction(emoji)
 
