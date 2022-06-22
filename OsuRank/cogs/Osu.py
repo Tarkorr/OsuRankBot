@@ -1,5 +1,6 @@
 import datetime
 import os
+from PycordPaginator import Paginator
 import typing
 from typing_extensions import ParamSpecKwargs
 import discord
@@ -12,6 +13,7 @@ from OsuRank.utils import display_score as dp
 from bs4 import BeautifulSoup
 from pprint import pprint
 import time
+import random
 
 prefix = "!o "
 data_p = json.loads(open('players.json', "r").read())
@@ -92,7 +94,7 @@ class Osu(commands.Cog):
                 
                 play = self.API.get_user_beatmap_score(beatmap_id=beatmap_id, user=user_id).get('score')
                                 
-                await message.edit(embed=utils.generate_embed_score(play, "Best "))
+                await message.edit(embed=utils.generate_embed_score(play, "Best ").basic())
                 await message.remove_reaction(emoji, user)
 
         elif emoji == '⏰':
@@ -112,7 +114,7 @@ class Osu(commands.Cog):
                 recent_maps = self.API.get_user_score(user=user_id, mode=mode, score_type='recent')
                 for beatmap in recent_maps:
                     if beatmap_id == str(beatmap["beatmap"]["id"]):
-                        await message.edit(embed=utils.generate_embed_score(beatmap, "Last "))
+                        await message.edit(embed=utils.generate_embed_score(beatmap, "Last ").basic())
                         await message.remove_reaction(emoji, user)
                         return
                 embed.set_field_at(1, name="**__Fail:__**",
@@ -189,6 +191,60 @@ class Osu(commands.Cog):
 
         else:
             await ctx.send(f"not made yet", file=discord.File("error.jpg"))
+    
+    
+    @commands.command(name="skin_embed",
+                aliases=[],
+                usage=f"{prefix}skin [show, set] <id>",
+                brief=f"Affiche tous les skins disponibles pour `{prefix}render` 'set' pour définir le skin"
+                )
+    async def skin_embed(self, ctx, param: str = "", skin_id = ""):
+        print(f"commande 'skin_embed' éxécuté par {ctx.author}")
+        
+        embeds = []
+        score = self.API.get_user_score(user="18632633", mode="osu", score_type="best", limit=50)[random.randint(0, 49)]
+        
+        c = utils.generate_embed_score(score=score, kind="Best", color=0xc60800)
+        
+        #             0          1         2         3            4  
+        embeds = [c.basic(), c.aika(), c.owo(), c.bathbot(), c.gurabot()]
+
+        if param == "set":
+            if skin_id == None:
+                return await ctx.send("l'`id` du skin, n'est pas un id de skin."
+                                      "\n__exemple:__ `!o skin_embed set 2` avec pour `id` 2.")
+            try:
+                skin_id = int(skin_id)
+            except ValueError:
+                return await ctx.send("l'`id` du skin, n'est pas un id de skin."
+                                      "\n__exemple:__ `!o skin_embed set 2` avec pour `id` 2.")
+            for p in data_p:
+                if data_p[p]["discord_id"] == ctx.author.id:
+                    if  0 < skin_id <= len(embeds):
+                        data_p[p]["skin_e"] = skin_id
+                        json.dump(data_p, open("players.json", "w"))
+                        return await ctx.send(f"skin `{skin_id}` utilisé")
+                    return await ctx.send(f"`{skin_id}` n'est pas valide."
+                                          f"\nla liste de skin et de leurs ids est visible en faisant `{prefix}skin_embed`")
+            return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
+                                  "\nil faut être bind avec le bot, exécute la commande "
+                                 f"`{prefix}bind (url de ton profil osu)`")
+
+        if param == "show":
+            try:
+                skin_id = int(skin_id)
+            except ValueError:
+                return await ctx.send(f"`{skin_id}` n'est pas un id de skin.")
+            
+            if 0 > skin_id > len(embeds):
+                return await ctx.send(f"`{skin_id}` n'est pas un id valide.")
+            else:
+                return await ctx.send(embed=embeds[skin_id - 1])
+            
+
+        e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
+                    only=ctx.author, ctx=ctx, use_select=False)
+        return await e.start()
         
 
     @commands.command(name="search",
@@ -227,6 +283,7 @@ class Osu(commands.Cog):
         bme = ["<", "@", ">"]
         discord_id = None
         osu_id = None
+        skin_id = 0
         
         # Ping d'une personne.
         if any(x in username for x in bme):
@@ -255,11 +312,11 @@ class Osu(commands.Cog):
         
         # Sinon
         if discord_id is not None:
-            user_infos = utils.get_binded(int(discord_id))
+            user_infos = utils.get_binded(discord_id = int(discord_id))
         elif osu_id is not None:
-            user_infos = utils.get_binded(ctx.author.id)
+            user_infos = utils.get_binded(discord_id = ctx.author.id)
         else:
-            user_infos = utils.get_binded(ctx.author.id)
+            user_infos = utils.get_binded(discord_id = ctx.author.id)
         
         if user_infos != None:
             if osu_id is None:
@@ -269,6 +326,7 @@ class Osu(commands.Cog):
                 username = user_infos.get("username")
             discord_id = user_infos.get("discord_id")
             color = int(user_infos.get("color"), 16)
+            skin_id = user_infos.get("skin_e")
         else:
             return await ctx.send(self.binding_message)
 
@@ -278,8 +336,8 @@ class Osu(commands.Cog):
             return await ctx.send(f"{username} n'a pas de parties récentes.")
         else:
             play = play[0]
-
-        rank_embed = await ctx.send(embed=utils.generate_embed_score(play, "Last ", color))
+        
+        rank_embed = await ctx.send(embed=get_embed(skin=skin_id, play=play, color=color))
         for emoji in ['🏆', '⏰']:
             await rank_embed.add_reaction(emoji)
 
@@ -319,7 +377,6 @@ class Osu(commands.Cog):
                 return await ctx.reply("HEY ! T'as oublié de me l'envoyer ce message ???")
             
             # print(msg)
-            print(msg.content)
             rep = msg.content
             rivals = rep.split(", ")
             if len(rivals) > 5:
@@ -380,7 +437,6 @@ class Osu(commands.Cog):
             
             rival_ = sorted(rival_, key=lambda x: x[2])
             rival_.reverse()
-            print(rival_)
             
             comp = []
             
@@ -417,7 +473,6 @@ class Osu(commands.Cog):
             username = user.get('username')
             title = beatmapset.get('title')
 
-            print(f"{username} completed the map {title}")
             # wprint(f"{username} completed the map {title}")
 
             color = 0xff66aa
@@ -656,7 +711,7 @@ class Osu(commands.Cog):
         if play is None:
             return await ctx.send("eror")
         play = play.get('score')
-        rank_embed = await ctx.send(embed=utils.generate_embed_score(play))
+        rank_embed = await ctx.send(embed=utils.generate_embed_score(play).basic())
         emojis = ['🏆', '⏰']
         for emoji in emojis:
             await rank_embed.add_reaction(emoji)
@@ -1105,6 +1160,21 @@ class Osu(commands.Cog):
             embed_error.set_footer(
                 text="|made by Tarkor|", icon_url="http://s.ppy.sh/a/16748782")
             await ctx.send(embed=embed_error)
+
+def get_embed(skin: int, play, color):
+    c = utils.generate_embed_score(play, "Last ", color)
+    if skin == 1:
+        return c.basic()
+    if skin == 2:
+        return c.aika()
+    if skin == 3:
+        return c.owo()
+    if skin == 4:
+        return c.bathbot()
+    if skin == 5:
+        return c.gurabot()
+    else:
+        return c.basic()
 
 
 def setup(client):
