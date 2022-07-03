@@ -58,6 +58,7 @@ class generate_embed_score:
         
         # Beatmap Data
         self.total_length = time.strftime('%M:%S', time.gmtime(int(self.beatmap.get("total_length"))))
+        self.hit_length = time.strftime('%M:%S', time.gmtime(int(self.beatmap.get("hit_length"))))
         self.stars = self.beatmap.get('difficulty_rating')
         self.bpm = float(self.beatmap.get('bpm'))
         self.objects = self.beatmap.get('count_circles') + self.beatmap.get('count_sliders') + self.beatmap.get('count_spinners')
@@ -87,6 +88,7 @@ class generate_embed_score:
         if self.mods == []:
             self.mods = ["NM"]
         self.total_score = score.get('score')
+        self.FC = self.score.get("perfect")
         self.count_300  = int(self.stats.get('count_300'))
         self.count_geki = int(self.stats.get('count_geki'))
         self.count_100  = int(self.stats.get('count_100'))
@@ -110,6 +112,9 @@ class generate_embed_score:
         print(f"{self.username} completed the map {self.title}")
 
 
+    # ---------- #
+    #  Basic v2  #
+    # ---------- #
     def basic(self):
         # wprint(f"{username} completed the map {title}")
 
@@ -119,22 +124,22 @@ class generate_embed_score:
         embed.set_author(name=f"{self.status} completed by {self.username}", url=f"https://osu.ppy.sh/users/{self.user_id}", icon_url=self.avatar_url)
         # ☆☆☆
         embed.add_field(name = " __Beatmap informations:__ ", 
-                        value = f"\n **__Durée:__** `{self.total_length}` "
-                                f"\n **__stars:__** `{self.stars}☆`",
+                        value = f"\n **__Durée:__** **{self.hit_length}** [{self.total_length}]"
+                                f"\n **__stars:__** **{self.stars}☆**",
                         inline=False)
     
     
         embed.add_field(name = f"**__{self.kind}Score:__**", 
-                        value = f"__rank:__{self.emote_rank}"
+                        value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.result[2].maxCombo == self.combo else ''}"
                                 f"\n| `{self.count_300:03d}` {str(emotes.get('300'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_geki:03d}` {str(emotes.get('300g'))} |\n"
                                 f"| `{self.count_100:03d}` {str(emotes.get('100'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_katu:03d}` {str(emotes.get('100k'))} |\n"
                                 f"| `{self.count_50:03d}` {str(emotes.get('50'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_miss:03d}` {str(emotes.get('0'))} |"
-                                f"\n| __pp:__ `{(round(self.result[0].pp)):03d}` pp |- - - - - - - - - - - -| "
+                                f"\n| __pp:__ **{(round(self.result[0].pp, 2))}**/{(round(self.result[2].pp, 2))} | - ∙ - | "
                                 f"__Mods:__ `{', '.join(self.mods)}`"
-                                f"\n| __combo:__ `{self.combo:04d}` x |- - - - - - - - -|"
+                                f"\n| __combo:__ **{self.combo}**{f'/{self.result[2].maxCombo}' if self.result[2].maxCombo != None else ''}x | - ∙ - | "
                                 f"__Accuracy:__ `{round(self.accuracy, 2)} %`",
                         inline=True)
 
