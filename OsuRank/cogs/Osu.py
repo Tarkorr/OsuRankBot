@@ -620,7 +620,7 @@ class Osu(commands.Cog):
                 return
 
             if params == "list":
-                await ctx.send(" la resp list contient :  " + str(data_p))
+                await ctx.send(" la list contient :  " + str(data_p))
                 return
 
         if url == "":

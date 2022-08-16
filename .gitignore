@@ -4,6 +4,9 @@ config_OSU.json
 players.json
 test.py
 temp.osu
+data_otd.json
+fumo.jpg
+otd_OSU.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
