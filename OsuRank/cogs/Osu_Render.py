@@ -337,9 +337,9 @@ class Osu_Render(commands.Cog):
                         text = "```" + ''.join([f"{pppp}: {data_p[p]['params'][pppp]}\n" for pppp in data_p[p]['params']]) + "```"
                         embed = discord.Embed(color = int(data_p[p]['color'], 16) ).add_field(name='__Paramètres actuels:__', value=text)
                         return await ctx.send(embed=embed)
-                    return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
-                                    f"\nil faut être bind avec le bot, exécute la commande"
-                                    f"`{prefix}bind (url de ton profil osu)`")
+                return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
+                                f"\nil faut être bind avec le bot, exécute la commande"
+                                f"`{prefix}bind (url de ton profil osu)`")
         else:
             for p in data_p:
                 if data_p[p]["discord_id"] == ctx.author.id:
@@ -366,13 +366,10 @@ class Osu_Render(commands.Cog):
                     e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
                                 only=ctx.author, ctx=ctx, use_select=False)
                     return await e.start()
-                    text = "```" + ''.join([f"{pppp}: {data_p[p]['params'][pppp]}\n" for pppp in data_p[p]['params']]) + "```"
-                    
-                    embed = discord.Embed(color = int(data_p[p]['color'], 16) ).add_field(name='__Paramètres actuels:__', value=text)
-                    return await ctx.send(embed=embed)
-                return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
-                                f"\nil faut être bind avec le bot, exécute la commande"
-                                f"`{prefix}bind (url de ton profil osu)`")
+                
+            return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
+                            f"\nil faut être bind avec le bot, exécute la commande"
+                            f"`{prefix}bind (url de ton profil osu)`")
 
 
 def setup(client):
