@@ -294,9 +294,12 @@ class Osu(commands.Cog):
         # =============================| vérifications + requète |=================================================== #
         # ==========> Si joueur sync <==========
         if user_infos is not None:
-            username = user_infos.get('username') if username is None else None # Bon c'est détestable de l'écrire comme ça
-            osu_id = int(user_infos.get('osu_id')) if osu_id is None else None # mais ça me fait très rire.
-            mode = user_infos.get('mode') if mode is None else None
+            if username is None:
+                username = user_infos.get('username')
+            if osu_id is None:
+                osu_id = int(user_infos.get('osu_id'))
+            if mode is None:
+                mode = user_infos.get('mode')
             color = int(user_infos.get("color"), 16)
         
         # ==========> vérification du mode <==========
