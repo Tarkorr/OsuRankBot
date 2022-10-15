@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from PycordPaginator import Paginator
+import Paginator
 
 prefix = "!o "
 
@@ -53,9 +53,7 @@ class Vanilla(commands.Cog):
             embeds.append(embed.copy())
         
         if len(embeds) > 1:
-            e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
-                            only=ctx.author, ctx=ctx, use_select=False)
-            return await e.start()
+            await Paginator.Simple().start(ctx, pages=embeds)
         else:
             return await ctx.send(embed=embeds[0])
 
@@ -93,5 +91,5 @@ class Vanilla(commands.Cog):
         return await ctx.channel.purge(limit=amount+1)
 
 
-def setup(client):
-    client.add_cog(Vanilla(client))
+async def setup(client):
+    await client.add_cog(Vanilla(client))

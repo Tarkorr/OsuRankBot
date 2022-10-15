@@ -1,7 +1,7 @@
 import datetime
 import os
-from PycordPaginator import Paginator
 import typing
+import Paginator
 from typing_extensions import ParamSpecKwargs
 import discord
 import json
@@ -242,9 +242,7 @@ class Osu(commands.Cog):
                 return await ctx.send(embed=embeds[skin_id - 1])
             
 
-        e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
-                    only=ctx.author, ctx=ctx, use_select=False)
-        return await e.start()
+        await Paginator.Simple().start(ctx, pages=embeds)
         
 
     @commands.command(name="search",
@@ -270,73 +268,64 @@ class Osu(commands.Cog):
         else:
             await ctx.send("erreur...")
     
+    class LastPlayFlags(commands.FlagConverter, delimiter="=",):
+        username: typing.Optional[str]
+        osu_id: typing.Optional[int]
+        mode: typing.Optional[str]
+        fails: bool = False
 
     @commands.command(name="last_play",
              aliases=["lp"],
              usage=f"{prefix}last_play <user> <mode>",
              brief="affiche le dernier score de <user>."
              )
-    async def last_play(self, ctx,
-                        username: str = "",
-                        mode: str = "osu"):
-
-        bme = ["<", "@", ">"]
-        discord_id = None
-        osu_id = None
+    async def last_play(self, ctx, *, flags: LastPlayFlags):
+        
+        # =============================| initialisation des variables |============================================== #
+        
+        username = flags.username
+        mode = flags.mode
+        osu_id = flags.osu_id
+        f = 1 if flags.fails else 0
+        color = 0xc60800
         skin_id = 0
-        
-        # Ping d'une personne.
-        if any(x in username for x in bme):
-            discord_id = username
-            for b in bme:
-                if b in discord_id:
-                    discord_id = discord_id.replace(b, "")
-            
-            try:
-                discord_id = int(discord_id)
-            except ValueError as e:
-                return await ctx.send(f"{username} est un Rôle ou autre, merci de ping une personne.")
-        
-        # user peut être quelqu'un ?
-        elif username != "":
-            if mode not in utils.osu_modes:
-                return await ctx.send(f"bah {mode} n'est pas un mode.")
-            else:
-                data_m = self.API.get_user(user=username, mode=mode)
+        user_infos = utils.get_binded(discord_id = ctx.author.id)
 
+        # =============================| vérifications + requète |=================================================== #
+        # ==========> Si joueur sync <==========
+        if user_infos is not None:
+            username = user_infos.get('username') if username is None else None # Bon c'est détestable de l'écrire comme ça
+            osu_id = int(user_infos.get('osu_id')) if osu_id is None else None # mais ça me fait très rire.
+            mode = user_infos.get('mode') if mode is None else None
+            color = int(user_infos.get("color"), 16)
+        
+        # ==========> vérification du mode <==========
+        if mode is None:
+            return await ctx.send("mode manquant.")
+        elif mode not in utils.osu_modes:
+            return await ctx.send(f"{mode} est un mode de jeu invalide,\nliste des modes de jeu: {', '.join(utils.osu_modes)}")
+        
+        # ==========> Vérification du joueur <==========
+        if username is None:
+            return await ctx.send("Nom d'utilisateur manquant.")
+        else:
+            data_m = self.API.get_user(user=username, mode=mode)
             if data_m == {}:
                 return await ctx.send(f"erreur {username} n'éxiste pas.")
-            
-            osu_id = str(data_m.get('id'))
-            username = str(data_m.get('username'))
         
-        # Sinon
-        if discord_id is not None:
-            user_infos = utils.get_binded(discord_id = int(discord_id))
-        elif osu_id is not None:
-            user_infos = utils.get_binded(discord_id = ctx.author.id)
-        else:
-            user_infos = utils.get_binded(discord_id = ctx.author.id)
+        # ==========> Récupération de l'id osu <==========
+        if osu_id is None:
+            osu_id = data_m.get('id')
         
-        if user_infos != None:
-            if osu_id is None:
-                osu_id = user_infos.get("osu_id")
-                mode = user_infos.get("mode")
-            if username == "":
-                username = user_infos.get("username")
-            discord_id = user_infos.get("discord_id")
-            color = int(user_infos.get("color"), 16)
-            skin_id = user_infos.get("skin_e")
-        else:
-            return await ctx.send(self.binding_message)
-
-        play = self.API.get_user_score(user = osu_id, score_type = "recent", mode = mode, limit = 1)
-
+        # user est un id  TODO user: int
+        # ==========> Envoi de la requète <==========
+        play = self.API.get_user_score(user = str(osu_id), score_type = "recent", mode = mode, limit = 1, include_fails=f)
         if play == {} or play == []:
-            return await ctx.send(f"{username} n'a pas de parties récentes.")
+            return await ctx.reply(f"{username} n'a pas de parties récentes.")
         else:
             play = play[0]
         
+        # ==========> Envoi du message <==========
         rank_embed = await ctx.send(embed=get_embed(skin=skin_id, play=play, color=color))
         for emoji in ['🏆', '⏰']:
             await rank_embed.add_reaction(emoji)
@@ -1177,5 +1166,5 @@ def get_embed(skin: int, play, color):
         return c.basic()
 
 
-def setup(client):
-    client.add_cog(Osu(client))
+async def setup(client):
+    await client.add_cog(Osu(client))

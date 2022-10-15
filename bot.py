@@ -1,35 +1,36 @@
 import discord
 from discord.ext import commands
-from pycord_components import PycordComponents
 from discord.ext.commands import CommandNotFound
 import os
 import json
+import asyncio
 
 cfg = json.loads(open("config_OSU.json", "r").read())
 class KEYS:
     OSU_API = cfg["OSU_API"]
     my_id = int(cfg["me"])
-    token = cfg["token"]
+    token = cfg["token2"]
     guild_id = cfg["server-id"]
     logs_channel = cfg["logs-channel-id"]
 
 
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 
-client = commands.Bot(command_prefix="!o ",  guild_subscriptions=True, intents=intents)
+client = commands.Bot(command_prefix='!o ',  guild_subscriptions=True, intents=intents)
 
 print("Script executed OwO")
 
 @client.event
 async def on_ready():
-    PycordComponents(client)
     game = discord.Game("Diplomacy")
     await client.change_presence(status=discord.Status.dnd, activity=game)
-    print(client.user.name + f' <!> - connecté - <!> {round(client.latency, 2)}s')
+    if client.user is not None:
+        print(client.user.name + f' <!> - connecté - <!> {round(client.latency, 2)}s')
     me = client.get_user(KEYS.my_id)
-    await me.send('Bot online !')
-
+    if me is not None:
+        await me.send('Bot online !')
 
 @client.event
 async def on_command_error(ctx, error):
@@ -124,8 +125,8 @@ def is_it_me(ctx):
 @commands.check(is_it_me)
 async def load(ctx, extension):
     try:
-        client.load_extension(f"OsuRank.cogs.{extension}")
-    except discord.ext.commands.errors.ExtensionAlreadyLoaded as e:
+        await client.load_extension(f"OsuRank.cogs.{extension}")
+    except commands.ExtensionAlreadyLoaded as e:
         print(e)
         return await ctx.send(e)
     await ctx.send(f"{extension} loaded." \
@@ -140,8 +141,8 @@ async def load(ctx, extension):
 @commands.check(is_it_me)
 async def unload(ctx, extension):
     try:
-        client.unload_extension(f"OsuRank.cogs.{extension}")
-    except discord.ext.commands.errors.ExtensionNotLoaded as e:
+        await client.unload_extension(f"OsuRank.cogs.{extension}")
+    except commands.ExtensionNotLoaded as e:
         print(e)
         return await ctx.send(e)
     await ctx.send(f"{extension} unloaded." \
@@ -157,8 +158,8 @@ async def unload(ctx, extension):
 @commands.check(is_it_me)
 async def reload(ctx, extension):
     try:
-        client.unload_extension(f"OsuRank.cogs.{extension}")
-        client.load_extension(f"OsuRank.cogs.{extension}")
+        await client.unload_extension(f"OsuRank.cogs.{extension}")
+        await client.load_extension(f"OsuRank.cogs.{extension}")
     except (commands.ExtensionNotLoaded, commands.ExtensionAlreadyLoaded) as e:
         print(e)
         return await ctx.send(e)
@@ -166,8 +167,15 @@ async def reload(ctx, extension):
     print(f"{extension} reloaded.")
 
 
-for filename in os.listdir("./OsuRank/cogs"):
-    if filename.endswith(".py") and filename != "__init__.py":
-        client.load_extension(f"OsuRank.cogs.{filename[:-3]}")
 
-client.run(KEYS.token)
+async def load_extensions():
+    for filename in os.listdir("./OsuRank/cogs"):
+        if filename.endswith(".py") and filename != "__init__.py":
+            await client.load_extension(f"OsuRank.cogs.{filename[:-3]}")
+
+async def main():
+    async with client:
+        await load_extensions()
+        await client.start(KEYS.token)
+
+asyncio.run(main())

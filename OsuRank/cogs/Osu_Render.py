@@ -4,7 +4,7 @@ from discord.ext import commands
 import asyncio
 import datetime
 from urllib.parse import urlparse
-from PycordPaginator import Paginator
+import Paginator
 import json
 import requests
 import os
@@ -161,9 +161,7 @@ class Osu_Render(commands.Cog):
                     limit = 0
                     a = ""
 
-            e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
-                        only=ctx.author, ctx=ctx, use_select=False)
-            return await e.start()
+            await Paginator.Simple().start(ctx, pages=embeds)
 
         if param == "set":
             if skin_id == None:
@@ -226,9 +224,7 @@ class Osu_Render(commands.Cog):
                     limit = 0
                     a = ""
 
-            e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
-                        only=ctx.author, ctx=ctx, use_select=False)
-            return await e.start()
+            await Paginator.Simple().start(ctx, pages=embeds)
         
     @commands.command(name="params",
             aliases=[],
@@ -363,14 +359,12 @@ class Osu_Render(commands.Cog):
                             limit = 0
                             a = "```"
 
-                    e = Paginator(client=self.client.components_manager, embeds=embeds, channel=ctx.channel,
-                                only=ctx.author, ctx=ctx, use_select=False)
-                    return await e.start()
+                    await Paginator.Simple().start(ctx, pages=embeds)
                 
             return await ctx.send("Pour pouvoir définir un skin et des paramètres particuliers,"
                             f"\nil faut être bind avec le bot, exécute la commande"
                             f"`{prefix}bind (url de ton profil osu)`")
 
 
-def setup(client):
-    client.add_cog(Osu_Render(client))
+async def setup(client):
+    await client.add_cog(Osu_Render(client))
