@@ -51,7 +51,8 @@ async def on_member_join(member):
 @client.event
 async def on_message(ctx):
     content = ctx.content
-    if ctx.author.id == 913937262016872518:
+    # TODO client.id
+    if ctx.author.id == client.user.id:
         return
     if ctx.channel.id == 966475432998338590 and ctx.attachments == []:
         await ctx.author.send(
