@@ -270,7 +270,6 @@ class Osu(commands.Cog):
     
     class LastPlayFlags(commands.FlagConverter, delimiter="=",):
         username: typing.Optional[str]
-        osu_id: typing.Optional[int]
         mode: typing.Optional[str]
         fails: bool = False
 
@@ -285,30 +284,30 @@ class Osu(commands.Cog):
         
         username = flags.username
         mode = flags.mode
-        osu_id = flags.osu_id
+        osu_id = None
         f = 1 if flags.fails else 0
         color = 0xc60800
         skin_id = 0
         user_infos = utils.get_binded(discord_id = ctx.author.id)
 
         # =============================| vérifications + requète |=================================================== #
-        # ==========> Si joueur sync <==========
+        # ==========> Si joueur sync <========== #
         if user_infos is not None:
             if username is None:
                 username = user_infos.get('username')
-            if osu_id is None:
+            if osu_id is None and username is None:
                 osu_id = int(user_infos.get('osu_id'))
             if mode is None:
                 mode = user_infos.get('mode')
             color = int(user_infos.get("color"), 16)
-        
-        # ==========> vérification du mode <==========
+            
+        # ==========> vérification du mode <========== #
         if mode is None:
             return await ctx.send("mode manquant.")
         elif mode not in utils.osu_modes:
             return await ctx.send(f"{mode} est un mode de jeu invalide,\nliste des modes de jeu: {', '.join(utils.osu_modes)}")
         
-        # ==========> Vérification du joueur <==========
+        # ==========> Vérification du joueur <========== #
         if username is None:
             return await ctx.send("Nom d'utilisateur manquant.")
         else:
@@ -316,19 +315,19 @@ class Osu(commands.Cog):
             if data_m == {}:
                 return await ctx.send(f"erreur {username} n'éxiste pas.")
         
-        # ==========> Récupération de l'id osu <==========
+        # ==========> Récupération de l'id osu <========== #
         if osu_id is None:
             osu_id = data_m.get('id')
         
         # user est un id  TODO user: int
-        # ==========> Envoi de la requète <==========
+        # ==========> Envoi de la requète <========== #
         play = self.API.get_user_score(user = str(osu_id), score_type = "recent", mode = mode, limit = 1, include_fails=f)
         if play == {} or play == []:
             return await ctx.reply(f"{username} n'a pas de parties récentes.")
         else:
             play = play[0]
         
-        # ==========> Envoi du message <==========
+        # ==========> Envoi du message <========== #
         rank_embed = await ctx.send(embed=get_embed(skin=skin_id, play=play, color=color))
         for emoji in ['🏆', '⏰']:
             await rank_embed.add_reaction(emoji)
