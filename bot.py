@@ -17,20 +17,18 @@ class KEYS:
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
+game = discord.Game("Diplomacy")
 
-client = commands.Bot(command_prefix='!o ',  guild_subscriptions=True, intents=intents)
+client = commands.Bot(command_prefix='!o ',  guild_subscriptions=True, intents=intents, status=discord.Status.dnd, activity=game)
 
 print("Script executed OwO")
 
 @client.event
 async def on_ready():
-    game = discord.Game("Diplomacy")
-    await client.change_presence(status=discord.Status.dnd, activity=game)
-    if client.user is not None:
-        print(client.user.name + f' <!> - connecté - <!> {round(client.latency, 2)}s')
-    me = client.get_user(KEYS.my_id)
-    if me is not None:
-        await me.send('Bot online !')
+    print(f"<!> - {client.user.name} connecté - <!> \nlatency: {round(client.latency*1000, 2)}ms") # type: ignore
+    me = await client.fetch_user(KEYS.my_id)
+    await me.send('Bot online !')
+
 
 @client.event
 async def on_command_error(ctx, error):
@@ -52,7 +50,7 @@ async def on_member_join(member):
 async def on_message(ctx):
     content = ctx.content
     # TODO client.id
-    if ctx.author.id == client.user.id:
+    if ctx.author.id == client.user.id: # type: ignore
         return
     if ctx.channel.id == 966475432998338590 and ctx.attachments == []:
         await ctx.author.send(
