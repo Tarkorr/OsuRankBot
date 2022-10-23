@@ -279,9 +279,9 @@ class Osu(commands.Cog):
              brief="affiche le dernier score de <user>."
              )
     async def last_play(self, ctx, *, flags: LastPlayFlags):
+        print(f"commande 'last_play' éxécuté par {ctx.author}")
         
         # =============================| initialisation des variables |============================================== #
-        
         username = flags.username
         mode = flags.mode
         osu_id = None
@@ -289,7 +289,7 @@ class Osu(commands.Cog):
         color = 0xc60800
         skin_id = 0
         user_infos = utils.get_binded(discord_id = ctx.author.id)
-
+        
         # =============================| vérifications + requète |=================================================== #
         # ==========> Si joueur sync <========== #
         if user_infos is not None:
@@ -300,6 +300,8 @@ class Osu(commands.Cog):
             if mode is None:
                 mode = user_infos.get('mode')
             color = int(user_infos.get("color"), 16)
+        else:
+            await ctx.send(self.binding_message)
             
         # ==========> vérification du mode <========== #
         if mode is None:
@@ -887,16 +889,16 @@ class Osu(commands.Cog):
     async def statistics(self, ctx, username: str = "", mode: str = "osu"):
         print(f"commande 'statistics' éxécuté par {ctx.author}")
         color = 0xff66aa
-
+        
         if username == "":
-            player = utils.get_binded(ctx)
+            player = utils.get_binded(ctx.author.id)
             if player is None:
                 return await ctx.send("Tu peux mettre un pseudo ?"
-                            "\nFais `!o bind <url profil osu>` pour pouvoir directement utiliser `!o lp`")
+                                      "\nFais `!o bind <url profil osu>` pour pouvoir directement utiliser `!o lp`")
             else:
                 username = str(player.get("osu_id"))
                 mode = player.get("mode")
-
+        
         data_z = self.API.get_user(user=username, mode=mode)
         stats = data_z.get('statistics')
         if stats is not None:
@@ -905,6 +907,7 @@ class Osu(commands.Cog):
             return await ctx.send(f'Impossible de charger les statistiques de {username}')
         
         heart = data_z.get('support_level')
+        
         if heart is None:
             heart = ""
         else:
@@ -924,13 +927,17 @@ class Osu(commands.Cog):
                                         f"\n** ⸰ Discord:** {data_z.get('discord')}")
 
         embed.set_thumbnail(url=data_z['avatar_url'])
-        embed.set_image(url=data_z['cover_url'])
+        
+        if utils.get_courbe(data_z['rank_history']["data"]):
+            plot_file = discord.File("plot.png")
+            embed.set_image(url="attachment://plot.png")
+        else:
+            plot_file = discord.File("fumo.jpg")
+            embed.set_image(url="attachment://fumo.jpg")
 
         i = stats.get('level').get('progress') / 10
         progress = ["■" for j in range(0, 10) if j < i]
         progress = progress + ["□" for k in range(10 - len(progress))]
-
-        # ░ ▒ ▒ ▓ █
         
         country_code = data_z.get('country_code')
         if country_code is None:
@@ -949,7 +956,7 @@ class Osu(commands.Cog):
                             f" {utils.emotes.get('XH')}`{grades.get('ssh')}`",
                         inline=False)
 
-        await ctx.send(embed=embed)
+        await ctx.send(file=plot_file, embed=embed)
 
 
     @commands.command(name="fight",

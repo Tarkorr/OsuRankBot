@@ -4,6 +4,9 @@ import time
 import discord
 import requests
 import rosu_pp_py
+import typing
+import matplotlib.pyplot as plt
+from matplotlib.ticker import StrMethodFormatter
 import enum
 from pprint import pprint
 from . import OsuAPIv3
@@ -131,16 +134,16 @@ class generate_embed_score:
     
     
         embed.add_field(name = f"**__{self.kind}Score:__**", 
-                        value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.result[2].maxCombo == self.combo else ''}"
+                        value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.result[2].maxCombo == self.combo else ''}" # type: ignore
                                 f"\n| `{self.count_300:03d}` {str(emotes.get('300'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_geki:03d}` {str(emotes.get('300g'))} |\n"
                                 f"| `{self.count_100:03d}` {str(emotes.get('100'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_katu:03d}` {str(emotes.get('100k'))} |\n"
                                 f"| `{self.count_50:03d}` {str(emotes.get('50'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_miss:03d}` {str(emotes.get('0'))} |"
-                                f"\n| __pp:__ **{(round(self.result[0].pp, 2))}**/{(round(self.result[2].pp, 2))} | - ∙ - | "
+                                f"\n| __pp:__ **{(round(self.result[0].pp, 2))}**/{(round(self.result[2].pp, 2))} | - ∙ - | " # type: ignore
                                 f"__Mods:__ `{', '.join(self.mods)}`"
-                                f"\n| __combo:__ **{self.combo}**{f'/{self.result[2].maxCombo}' if self.result[2].maxCombo != None else ''}x | - ∙ - | "
+                                f"\n| __combo:__ **{self.combo}**{f'/{self.result[2].maxCombo}' if self.result[2].maxCombo != None else ''}x | - ∙ - | " # type: ignore
                                 f"__Accuracy:__ `{round(self.accuracy, 2)} %`",
                         inline=True)
 
@@ -165,7 +168,7 @@ class generate_embed_score:
         
         # ☆☆☆
         embed.add_field(name = "Score informations", 
-                        value = f" ▸  {self.emote_rank} **{round(self.accuracy, 2)}% {round(self.result[0].pp, 2)}pp** +{', '.join(self.mods)} {self.combo}/{self.result[0].maxCombo}x"
+                        value = f" ▸  {self.emote_rank} **{round(self.accuracy, 2)}% {round(self.result[0].pp, 2)}pp** +{', '.join(self.mods)} {self.combo}/{self.result[0].maxCombo}x" # type: ignore
                                 f"\n ▸ {{ {self.count_100}x100, {self.count_50}x50, {self.count_miss}xM }} ", 
                         inline=False)
 
@@ -188,8 +191,8 @@ class generate_embed_score:
         
         # ☆☆☆
         embed = discord.Embed(color=self.color, timestamp=self.created_at, 
-                            description=f" ► {self.emote_rank} ▸ **{round(self.result[0].pp, 2)}pp** ({round(self.result[1].pp, 2)}pp for {round(self.accuracy, 2)}% FC) ▸ {round(self.accuracy, 2)}%"
-                                        f"\n ► {self.total_score:,} ▸ x{self.combo}/{self.result[1].maxCombo} ▸ [{self.count_300}/{self.count_100}/{self.count_50}/{self.count_miss}]")
+                            description=f" ► {self.emote_rank} ▸ **{round(self.result[0].pp, 2)}pp** ({round(self.result[1].pp, 2)}pp for {round(self.accuracy, 2)}% FC) ▸ {round(self.accuracy, 2)}%" # type: ignore
+                                        f"\n ► {self.total_score:,} ▸ x{self.combo}/{self.result[1].maxCombo} ▸ [{self.count_300}/{self.count_100}/{self.count_50}/{self.count_miss}]") # type: ignore
         
         embed.set_thumbnail(url=self.cover_list)
         embed.set_author(name=f"{self.title} [{self.version}]  + {', '.join(self.mods)} [{self.stars}★]", url=self.beatmap_url, icon_url=self.avatar_url)
@@ -215,10 +218,10 @@ class generate_embed_score:
         embed.add_field(name="Grade", value=f"{self.emote_rank} {'+' if self.mods != [] else ''}{''.join(self.mods)}")
         embed.add_field(name="Score", value=f"{self.total_score:,}")
         embed.add_field(name="Acc", value=f"{round(self.accuracy, 2)}%")
-        embed.add_field(name="PP", value=f"**{round(self.result[0].pp, 2)}**/{round(self.result[2].pp, 2)}")
-        embed.add_field(name="Combo", value=f"**{self.combo}x**/{self.result[2].maxCombo}x")
+        embed.add_field(name="PP", value=f"**{round(self.result[0].pp, 2)}**/{round(self.result[2].pp, 2)}") # type: ignore
+        embed.add_field(name="Combo", value=f"**{self.combo}x**/{self.result[2].maxCombo}x") # type: ignore
         embed.add_field(name="Hits", value=f"{{{self.count_300}/{self.count_100}/{self.count_50}/{self.count_miss}}}")
-        embed.add_field(name="If FC: PP", value=f"**{round(self.result[1].pp, 2)}**/{round(self.result[2].pp, 2)}")
+        embed.add_field(name="If FC: PP", value=f"**{round(self.result[1].pp, 2)}**/{round(self.result[2].pp, 2)}") # type: ignore
         embed.add_field(name="Acc", value=f"{round(self.accuracy, 2)}%")
         embed.add_field(name="Hits", value=f"{{{self.count_300}/{self.count_100}/{self.count_50}/0}}")
         
@@ -239,8 +242,8 @@ class generate_embed_score:
         # ☆☆☆
         embed = discord.Embed(color=self.color,
                             description=f"{self.pos}{'.' if self.pos != '' else ''} {self.emote_rank} [{self.title} [{self.version}]]({self.beatmap_url}) {'+' if self.mods != [] else ''}{'|'.join(self.mods)} [{self.stars}★]"
-                                        f"\n{self.total_score:,} ◦ {round(self.accuracy, 2)}% ◦ {round(self.result[0].pp, 2)}pp"
-                                        f"\n**x{self.combo}**/{self.result[1].maxCombo} ◦ `[{self.count_300} ● {self.count_100} ● {self.count_50} ● {self.count_miss}]` <t:{round(datetime.datetime.timestamp(self.created_at))}:R>")
+                                        f"\n{self.total_score:,} ◦ {round(self.accuracy, 2)}% ◦ {round(self.result[0].pp, 2)}pp" # type: ignore
+                                        f"\n**x{self.combo}**/{self.result[1].maxCombo} ◦ `[{self.count_300} ● {self.count_100} ● {self.count_50} ● {self.count_miss}]` <t:{round(datetime.datetime.timestamp(self.created_at))}:R>") # type: ignore
         
         embed.set_thumbnail(url=self.cover_list)
         embed.set_author(name=f"{self.username}: {self.user_stats.get('pp')}pp ⇨ #{self.user_stats.get('global_rank'):,} ({{server}})", url=f"https://osu.ppy.sh/users/{self.user_id}", icon_url=self.avatar_url)
@@ -283,12 +286,35 @@ def get_binded(discord_id: int = 0, osu_id: int = 0):
         for p in data_p:
             if str(discord_id) == str(data_p[p]["discord_id"]):
                 return data_p[p]
+        return None
     else:
-         for p in data_p:
+        for p in data_p:
             if str(osu_id) == str(data_p[p]["osu_id"]):
                 return data_p[p]
-    data_p.close()
-    return None
+        return None
+
+def get_courbe(rank_history: list):
+
+    y = [a/1000 for a in rank_history]
+    x = [a for a in range(len(y))]
+
+    fig, ax = plt.subplots()
+    ax.plot(x, y, "#5865F2", linewidth=4)
+    ax.set_facecolor('#23272A') # 2C2F33
+    ax.invert_yaxis()
+    ax.get_xaxis().set_visible(False)
+    ax.yaxis.set_major_formatter(StrMethodFormatter('{x:n}k'))
+    ax.grid()
+
+    fig.patch.set_facecolor('#2C2F33') # 23272A
+    fig.set_figwidth(16)
+    fig.set_figheight(4)
+
+    plt.yticks(fontsize=16, color="w")
+    plt.xlim([-1, max(x)+0.5])
+    plt.rcParams["figure.autolayout"] = True
+    plt.savefig('plot.png', transparent=False)
+    return True
 
 
 class Mods(enum.IntFlag):
