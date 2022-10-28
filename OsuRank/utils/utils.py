@@ -85,7 +85,7 @@ class generate_embed_score:
         self.avatar_url = self.user.get('avatar_url')
         
         # score data
-        self.created_at = datetime.datetime.strptime(self.score.get('created_at'), "%Y-%m-%dT%H:%M:%S+00:00")
+        self.created_at = datetime.datetime.strptime(self.score.get('created_at'), "%Y-%m-%dT%H:%M:%SZ") # old: "%Y-%m-%dT%H:%M:%S+00:00"
         self.stats = score.get('statistics')
         self.emote_rank = emotes.get(self.score.get("rank"))
         self.mods = score.get('mods')
@@ -300,13 +300,13 @@ def get_courbe(rank_history: list):
 
     fig, ax = plt.subplots()
     ax.plot(x, y, "#5865F2", linewidth=4)
-    ax.set_facecolor('#23272A') # 2C2F33
+    ax.set_facecolor('#2C2F33') # 2C2F33
     ax.invert_yaxis()
     ax.get_xaxis().set_visible(False)
     ax.yaxis.set_major_formatter(StrMethodFormatter('{x:n}k'))
     ax.grid()
 
-    fig.patch.set_facecolor('#2C2F33') # 23272A
+    fig.patch.set_facecolor('#23272A') # 23272A
     fig.set_figwidth(16)
     fig.set_figheight(4)
 
