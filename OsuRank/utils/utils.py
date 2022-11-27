@@ -40,7 +40,6 @@ emotes = {
 class generate_embed_score:
     
     def __init__(self, score, kind: str = "", color: int = 0xff66aa):
-        
         self.score = score
         self.kind = kind
         self.color = color
@@ -80,6 +79,7 @@ class generate_embed_score:
         self.user_id = self.user.get('id')
         self.user_stats = OsuAPIv3.API().get_user(user=self.user_id)["statistics"]
         self.mode = score.get("mode")
+        self.mode_int = score.get("mode_int")
         self.img_mode = self.get_img_mode(self.mode)
         self.username = self.user.get('username')
         self.avatar_url = self.user.get('avatar_url')
@@ -102,18 +102,27 @@ class generate_embed_score:
         self.accuracy = score.get('accuracy') * 100
         self.combo = int(self.score.get('max_combo'))
         self.pos = self.pb_pos(self.user_id, self.mode, score.get('id'))
+
+        map_ = rosu_pp_py.Beatmap(bytes=requests.get(f"https://osu.ppy.sh/osu/{self.beatmap_id}").content)
+        # available:  'mode', 'mods', 'n_geki', 'n_katu', 'n300', 'n100', 'n50', 'n_misses', 'acc', 'combo', 'passed_objects', 'clock_rate', or 'difficulty'
+        ParamNormal = rosu_pp_py.Calculator(mode=self.mode_int, acc=self.accuracy, mods=sum([Mods[k].value for k in self.mods]), n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss, combo=score.get("max_combo"))
+        ParamFC = rosu_pp_py.Calculator(mode=self.mode_int, mods=sum([Mods[k].value for k in self.mods]), n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss)
+        ParamBEST = rosu_pp_py.Calculator(mode=self.mode_int, mods=sum([Mods[k].value for k in self.mods]))
         
-        # pp calculation + maxCombo (rosu_pp_py)
-        open("temp.osu", "wb" ).write(requests.get(f"https://osu.ppy.sh/osu/{self.beatmap_id}").content)
-        calculator = rosu_pp_py.Calculator("temp.osu")
-        ParamNormal = rosu_pp_py.ScoreParams(acc=self.accuracy, mods=sum([Mods[k].value for k in self.mods]), n300=self.count_300, n100=self.count_100, n50=self.count_50, nMisses=self.count_miss, nKatu=self.count_katu, combo=score.get("max_combo"), score=score.get('score'))
-        ParamFC = rosu_pp_py.ScoreParams(mods=sum([Mods[k].value for k in self.mods]), n300=self.count_300, n100=self.count_100, n50=self.count_50, nMisses=0)
-        ParamBEST = rosu_pp_py.ScoreParams(mods=sum([Mods[k].value for k in self.mods]))
+        # question d'habitude ancienne version de rosu_pp_py utilisait un 'calculator', qui donnait une liste donc on reste sur une liste pour stock les résultats.
+        self.result = [ParamNormal.performance(map_), ParamFC.performance(map_), ParamBEST.performance(map_)]
+        self.pp_Normal = self.result[0].pp if self.result[0].pp != float('inf') else 1 # type: ignore + ahahahahhahah c'est illisible
+        self.pp_FC = self.result[1].pp # type: ignore
+        self.pp_BEST = self.result[2].pp # type: ignore
         
-        self.result = calculator.calculate([ParamNormal, ParamFC, ParamBEST])    
+        if self.mode_int==0:
+            self.max_combo = self.result[2].difficulty.max_combo # type: ignore
+        else:
+            self.max_combo = None
         
-        
-        print(f"{self.username} completed the map {self.title}")
+        print(f"{self.username} completed the map {self.title}" 
+            f"\nEverything seems to be fine... For further research, acknowledge these facts:"
+            f" pp: {round(self.pp_Normal)}/{round(self.pp_BEST)}pp combo: {self.combo}/{self.max_combo} acc: {round(self.accuracy, 2)}% stars: {self.stars}*") # type: ignore
 
 
     # ---------- #
@@ -134,16 +143,16 @@ class generate_embed_score:
     
     
         embed.add_field(name = f"**__{self.kind}Score:__**", 
-                        value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.result[2].maxCombo == self.combo else ''}" # type: ignore
+                        value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.max_combo == self.combo else ''}" # type: ignore
                                 f"\n| `{self.count_300:03d}` {str(emotes.get('300'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_geki:03d}` {str(emotes.get('300g'))} |\n"
                                 f"| `{self.count_100:03d}` {str(emotes.get('100'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_katu:03d}` {str(emotes.get('100k'))} |\n"
                                 f"| `{self.count_50:03d}` {str(emotes.get('50'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_miss:03d}` {str(emotes.get('0'))} |"
-                                f"\n| __pp:__ **{(round(self.result[0].pp, 2))}**/{(round(self.result[2].pp, 2))} | - ∙ - | " # type: ignore
+                                f"\n| __pp:__ **{(round(self.pp_Normal, 2))}**/{(round(self.pp_BEST, 2))} | - ∙ - | " # type: ignore
                                 f"__Mods:__ `{', '.join(self.mods)}`"
-                                f"\n| __combo:__ **{self.combo}**{f'/{self.result[2].maxCombo}' if self.result[2].maxCombo != None else ''}x | - ∙ - | " # type: ignore
+                                f"\n| __combo:__ **{self.combo}**{f'/{self.max_combo}' if self.max_combo != None else ''}x | - ∙ - | " # type: ignore
                                 f"__Accuracy:__ `{round(self.accuracy, 2)} %`",
                         inline=True)
 
@@ -168,7 +177,7 @@ class generate_embed_score:
         
         # ☆☆☆
         embed.add_field(name = "Score informations", 
-                        value = f" ▸  {self.emote_rank} **{round(self.accuracy, 2)}% {round(self.result[0].pp, 2)}pp** +{', '.join(self.mods)} {self.combo}/{self.result[0].maxCombo}x" # type: ignore
+                        value = f" ▸  {self.emote_rank} **{round(self.accuracy, 2)}% {round(self.pp_Normal, 2)}pp** +{', '.join(self.mods)} {self.combo}/{self.max_combo}x" # type: ignore
                                 f"\n ▸ {{ {self.count_100}x100, {self.count_50}x50, {self.count_miss}xM }} ", 
                         inline=False)
 
@@ -191,8 +200,8 @@ class generate_embed_score:
         
         # ☆☆☆
         embed = discord.Embed(color=self.color, timestamp=self.created_at, 
-                            description=f" ► {self.emote_rank} ▸ **{round(self.result[0].pp, 2)}pp** ({round(self.result[1].pp, 2)}pp for {round(self.accuracy, 2)}% FC) ▸ {round(self.accuracy, 2)}%" # type: ignore
-                                        f"\n ► {self.total_score:,} ▸ x{self.combo}/{self.result[1].maxCombo} ▸ [{self.count_300}/{self.count_100}/{self.count_50}/{self.count_miss}]") # type: ignore
+                            description=f" ► {self.emote_rank} ▸ **{round(self.pp_Normal, 2)}pp** ({round(self.pp_FC, 2)}pp for {round(self.accuracy, 2)}% FC) ▸ {round(self.accuracy, 2)}%" # type: ignore
+                                        f"\n ► {self.total_score:,} ▸ x{self.combo}/{self.max_combo} ▸ [{self.count_300}/{self.count_100}/{self.count_50}/{self.count_miss}]") # type: ignore
         
         embed.set_thumbnail(url=self.cover_list)
         embed.set_author(name=f"{self.title} [{self.version}]  + {', '.join(self.mods)} [{self.stars}★]", url=self.beatmap_url, icon_url=self.avatar_url)
@@ -218,10 +227,10 @@ class generate_embed_score:
         embed.add_field(name="Grade", value=f"{self.emote_rank} {'+' if self.mods != [] else ''}{''.join(self.mods)}")
         embed.add_field(name="Score", value=f"{self.total_score:,}")
         embed.add_field(name="Acc", value=f"{round(self.accuracy, 2)}%")
-        embed.add_field(name="PP", value=f"**{round(self.result[0].pp, 2)}**/{round(self.result[2].pp, 2)}") # type: ignore
-        embed.add_field(name="Combo", value=f"**{self.combo}x**/{self.result[2].maxCombo}x") # type: ignore
+        embed.add_field(name="PP", value=f"**{round(self.pp_Normal, 2)}**/{round(self.pp_BEST, 2)}") # type: ignore
+        embed.add_field(name="Combo", value=f"**{self.combo}x**/{self.max_combo}x") # type: ignore
         embed.add_field(name="Hits", value=f"{{{self.count_300}/{self.count_100}/{self.count_50}/{self.count_miss}}}")
-        embed.add_field(name="If FC: PP", value=f"**{round(self.result[1].pp, 2)}**/{round(self.result[2].pp, 2)}") # type: ignore
+        embed.add_field(name="If FC: PP", value=f"**{round(self.pp_FC, 2)}**/{round(self.pp_BEST, 2)}") # type: ignore
         embed.add_field(name="Acc", value=f"{round(self.accuracy, 2)}%")
         embed.add_field(name="Hits", value=f"{{{self.count_300}/{self.count_100}/{self.count_50}/0}}")
         
@@ -242,8 +251,8 @@ class generate_embed_score:
         # ☆☆☆
         embed = discord.Embed(color=self.color,
                             description=f"{self.pos}{'.' if self.pos != '' else ''} {self.emote_rank} [{self.title} [{self.version}]]({self.beatmap_url}) {'+' if self.mods != [] else ''}{'|'.join(self.mods)} [{self.stars}★]"
-                                        f"\n{self.total_score:,} ◦ {round(self.accuracy, 2)}% ◦ {round(self.result[0].pp, 2)}pp" # type: ignore
-                                        f"\n**x{self.combo}**/{self.result[1].maxCombo} ◦ `[{self.count_300} ● {self.count_100} ● {self.count_50} ● {self.count_miss}]` <t:{round(datetime.datetime.timestamp(self.created_at))}:R>") # type: ignore
+                                        f"\n{self.total_score:,} ◦ {round(self.accuracy, 2)}% ◦ {round(self.pp_Normal, 2)}pp" # type: ignore
+                                        f"\n**x{self.combo}**/{self.max_combo} ◦ `[{self.count_300} ● {self.count_100} ● {self.count_50} ● {self.count_miss}]` <t:{round(datetime.datetime.timestamp(self.created_at))}:R>") # type: ignore
         
         embed.set_thumbnail(url=self.cover_list)
         embed.set_author(name=f"{self.username}: {self.user_stats.get('pp')}pp ⇨ #{self.user_stats.get('global_rank'):,} ({{server}})", url=f"https://osu.ppy.sh/users/{self.user_id}", icon_url=self.avatar_url)
