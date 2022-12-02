@@ -40,17 +40,27 @@ emotes = {
 class generate_embed_score:
     
     def __init__(self, score, kind: str = "", color: int = 0xff66aa):
+        # print('pass 0.5')
+        self.API = OsuAPIv3.API()
         self.score = score
         self.kind = kind
         self.color = color
+        
+        self.server = self.score.get('server')
+        if self.score.get('server') != None: # Le server n'est as bancho
+            self.score['beatmap'] = self.API.get_beatmap(self.score.get('beatmap_id'))
+        # Beatmap Data
+        # print('pass 1')
         self.beatmap = score.get('beatmap')
         
         # possiblement pas de beatmapset
+        # print('pass 2')
         self.beatmapset = score.get('beatmapset')
         if self.beatmapset is None:
-            self.beatmapset = OsuAPIv3.API().get_beatmapset(self.beatmap.get('beatmapset_id'))
+            self.beatmapset = self.API.get_beatmapset(self.beatmap.get('beatmapset_id'))
         
         # Beatmapset Data
+        # print('pass 3')
         self.artist = self.beatmapset.get('artist')
         self.title = self.beatmapset.get('title')
         self.creator = self.beatmapset.get('creator')
@@ -60,6 +70,7 @@ class generate_embed_score:
         self.beatmapset_id = self.beatmapset.get('id')
         
         # Beatmap Data
+        # print('pass 4')
         self.total_length = time.strftime('%M:%S', time.gmtime(int(self.beatmap.get("total_length"))))
         self.hit_length = time.strftime('%M:%S', time.gmtime(int(self.beatmap.get("hit_length"))))
         self.stars = self.beatmap.get('difficulty_rating')
@@ -75,9 +86,10 @@ class generate_embed_score:
         self.beatmap_url = self.beatmap.get('url')
         
         # user data
+        # print('pass 5')
         self.user = score.get('user')
         self.user_id = self.user.get('id')
-        self.user_stats = OsuAPIv3.API().get_user(user=self.user_id)["statistics"]
+        self.user_stats = self.API.get_user(user=self.user_id)["statistics"]
         self.mode = score.get("mode")
         self.mode_int = score.get("mode_int")
         self.img_mode = self.get_img_mode(self.mode)
@@ -85,12 +97,19 @@ class generate_embed_score:
         self.avatar_url = self.user.get('avatar_url')
         
         # score data
+        # print('pass 6')
         self.created_at = datetime.datetime.strptime(self.score.get('created_at'), "%Y-%m-%dT%H:%M:%SZ") # old: "%Y-%m-%dT%H:%M:%S+00:00"
         self.stats = score.get('statistics')
         self.emote_rank = emotes.get(self.score.get("rank"))
         self.mods = score.get('mods')
-        if self.mods == []:
-            self.mods = ["NM"]
+        self.mods = ["NM"] if self.mods == [] else self.mods
+        
+        # print('pass 6.5')
+        if self.mods is None:
+            self.mods_int = self.score.get('mods_int')
+        else:
+            self.mods_int = sum([Mods[k].value for k in self.mods])
+        # print('pass 6.6')
         self.total_score = score.get('score')
         self.FC = self.score.get("perfect")
         self.count_300  = int(self.stats.get('count_300'))
@@ -101,15 +120,20 @@ class generate_embed_score:
         self.count_miss = int(self.stats.get('count_miss'))
         self.accuracy = score.get('accuracy') * 100
         self.combo = int(self.score.get('max_combo'))
-        self.pos = self.pb_pos(self.user_id, self.mode, score.get('id'))
+        if self.score.get('server') == None:
+            self.pos = self.pb_pos(self.user_id, self.mode, score.get('id'))
+        else:
+            self.pos = ''
 
+        # print('pass 7')
         map_ = rosu_pp_py.Beatmap(bytes=requests.get(f"https://osu.ppy.sh/osu/{self.beatmap_id}").content)
         # available:  'mode', 'mods', 'n_geki', 'n_katu', 'n300', 'n100', 'n50', 'n_misses', 'acc', 'combo', 'passed_objects', 'clock_rate', or 'difficulty'
-        ParamNormal = rosu_pp_py.Calculator(mode=self.mode_int, acc=self.accuracy, mods=sum([Mods[k].value for k in self.mods]), n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss, combo=score.get("max_combo"))
-        ParamFC = rosu_pp_py.Calculator(mode=self.mode_int, mods=sum([Mods[k].value for k in self.mods]), n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss)
-        ParamBEST = rosu_pp_py.Calculator(mode=self.mode_int, mods=sum([Mods[k].value for k in self.mods]))
+        ParamNormal = rosu_pp_py.Calculator(mode=self.mode_int, acc=self.accuracy, mods=self.mods_int, n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss, combo=score.get("max_combo"))
+        ParamFC = rosu_pp_py.Calculator(mode=self.mode_int, mods=self.mods_int, n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss)
+        ParamBEST = rosu_pp_py.Calculator(mode=self.mode_int, mods=self.mods_int)
         
         # question d'habitude ancienne version de rosu_pp_py utilisait un 'calculator', qui donnait une liste donc on reste sur une liste pour stock les résultats.
+        # print('pass 8')
         self.result = [ParamNormal.performance(map_), ParamFC.performance(map_), ParamBEST.performance(map_)]
         self.pp_Normal = self.result[0].pp if self.result[0].pp != float('inf') else 1 # type: ignore + ahahahahhahah c'est illisible
         self.pp_FC = self.result[1].pp # type: ignore
@@ -134,13 +158,12 @@ class generate_embed_score:
         embed = discord.Embed(title=f"**{self.title}**", url=self.beatmap_url, color=self.color, timestamp=self.created_at)
         embed.set_thumbnail(url=self.img_mode)
         embed.set_image(url=self.cover_card)
-        embed.set_author(name=f"{self.status} completed by {self.username}", url=f"https://osu.ppy.sh/users/{self.user_id}", icon_url=self.avatar_url)
+        embed.set_author(name=f"{self.status} completed by {self.username} on {self.server if self.server != None else 'bancho'}", url=f"https://osu.ppy.sh/users/{self.user_id}", icon_url=self.avatar_url)
         # ☆☆☆
         embed.add_field(name = " __Beatmap informations:__ ", 
                         value = f"\n **__Durée:__** **{self.hit_length}** [{self.total_length}]"
                                 f"\n **__stars:__** **{self.stars}☆**",
                         inline=False)
-    
     
         embed.add_field(name = f"**__{self.kind}Score:__**", 
                         value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.max_combo == self.combo else ''}" # type: ignore
@@ -151,7 +174,7 @@ class generate_embed_score:
                                 f"| `{self.count_50:03d}` {str(emotes.get('50'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_miss:03d}` {str(emotes.get('0'))} |"
                                 f"\n| __pp:__ **{(round(self.pp_Normal, 2))}**/{(round(self.pp_BEST, 2))} | - ∙ - | " # type: ignore
-                                f"__Mods:__ `{', '.join(self.mods)}`"
+                                f"__Mods:__ `{Mods(self.mods_int).__str__().strip('Mods.')}`"
                                 f"\n| __combo:__ **{self.combo}**{f'/{self.max_combo}' if self.max_combo != None else ''}x | - ∙ - | " # type: ignore
                                 f"__Accuracy:__ `{round(self.accuracy, 2)} %`",
                         inline=True)
@@ -264,7 +287,7 @@ class generate_embed_score:
     def pb_pos(self, user, mode, score_id):
         d = ""
         a = 0
-        best_scores = OsuAPIv3.API().get_user_score(user=user, score_type="best", limit=100, mode=mode)
+        best_scores = self.API.get_user_score(user=user, score_type="best", limit=100, mode=mode)
         for s in best_scores:
             a += 1
             if score_id == s.get('id'):
@@ -287,6 +310,23 @@ class generate_embed_score:
             return "https://i.imgur.com/MjOv5Kd.png"
         else:
             return "https://i.imgur.com/iSQFSTn.png"
+        
+    
+    def calculate_acc(self, stats, mode):
+        n300  = stats.get('count_300')
+        n300g = stats.get('count_geki')
+        n100  = stats.get('count_100')
+        n100k = stats.get('count_katu')
+        n50   = stats.get('count_50')
+        nmiss    = stats.get('count_miss')
+        if mode == 'osu':
+            return (300*n300 + 100*n100 + 50*n50) / (300*(n300+n100+n50+nmiss))
+        if mode == 'taiko':
+            return (n100k + 0.5*n100) / (n100k + n100 + nmiss) # unsure
+        if mode == 'fruits':
+            return # TODO
+        if mode == 'mania':
+            return (50 * n50 + 100 * n100 + 200 * n100k + 300 * (n300 + n300g)) / (300 * (nmiss + n50 + n100 + n100k + n300 + n300g))
 
 
 def get_binded(discord_id: int = 0, osu_id: int = 0):
