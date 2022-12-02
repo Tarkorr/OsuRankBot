@@ -11,7 +11,7 @@ class GET:
     # TODO https://akatsuki.pw/api/status
     
     
-    def __init__(self):
+    def __init__(self, server):
         # server = "cs0su.net"  # (727)
         # server = "seventwentyseven.xyz"  # (727)
         # server = "sakuru.pw"  # (727)
@@ -44,11 +44,17 @@ class GET:
         # server = "aisuru.xyz"
         # server = "katsumi.cf" --> Dead
         
-        server = "ripple.moe"
-        
+        # server = "ripple.moe" (akatsuki => ripple enft akatsuki utilise ripple)
+        self.server = server
         self.API_URL = f"https://{server}"
         self.cfg = json.loads(open("config_OSU.json", "r").read())
-        self.token = self.cfg["Ripple_token"]
+        # Ripple_token
+        # self.token = self.cfg["Ripple_token"]  
+    
+        # Akatsuki_token
+        # self.token = self.cfg["Akatsuki_token"]
+        # le token sne semble pas être nécessaire...
+        self.token = ''
         pass
     
     #\=========================================\
@@ -80,9 +86,9 @@ class GET:
         return {}
     
     
-    def user_recent(self, user: Optional[str] = None, mode: Optional[int] = 0, limit: Optional[int] = 50):
+    def user_recent(self, user: Optional[str] = None, mode: Optional[int] = 0, limit: Optional[int] = 50, relax: Optional[int] = 1):
         
-        r = requests.get(f'{self.API_URL}/api/get_user_recent?u={user}&m={mode}&limit={limit}')
+        r = requests.get(f'{self.API_URL}/api/get_user_recent?u={user}&m={mode}&rx={relax}&limit={limit}')
 
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -137,7 +143,7 @@ class GET:
     #\=========================================\
     def ping(self):
         
-        r = requests.get(f'{self.API_URL}/api/v1/ping?k={self.token}')
+        r = requests.get(f"{self.API_URL}/api/v1/ping{ f'?k={self.token}' if self.token is not None else ''}")
         
         if r.status_code == 200 and r.json() is not None:
             return r.json()
@@ -243,7 +249,7 @@ class GET:
     
     
     # must: iid or nname
-    def users_full(self, relax: Literal[0, 1, -1], 
+    def users_full(self, relax: Literal[0, 1, 2], 
               iid: Optional[int] = None,
               nname: Optional[str] = None):
         
@@ -256,7 +262,7 @@ class GET:
         else:
             return {"error": "iid or nname is required."}
                  
-        r = requests.get(url=f"{url}&relax={relax}")
+        r = requests.get(url=f"{url}&rx={relax}")
         print(r.url)
         
         if r.status_code == 200 and r.json() is not None:
@@ -366,7 +372,7 @@ class GET:
     # b or md5 is needed
     def scores(self,
                sort: Literal["pp", "score", "accuracy", "id"],
-               relax: Literal[0, 1, -1],
+               relax: Literal[0, 1, 2],
                md5 : Optional[str] = None, 
                b: Optional[int] = None, 
                mode: Optional[str] = "",
@@ -381,7 +387,7 @@ class GET:
         else:
             return {"error": "md5 or b is required."}
                  
-        r = requests.get(url=f"{url}&sort={sort}&relax={relax}&mode={mode}&l={limit}")
+        r = requests.get(url=f"{url}&sort={sort}&rx={relax}&mode={mode}&l={limit}")
         print(r.url)
         
         if r.status_code == 200 and r.json() is not None:
@@ -394,7 +400,7 @@ class GET:
     
     # must: iid or nname
     def users_scores_recent(self, 
-                            relax: Literal[0, 1, -1],
+                            relax: Literal[0, 1, 2],
                             mode: Optional[str] = "",
                             iid: Optional[int] = None,
                             nname: Optional[str] = None,
@@ -407,22 +413,29 @@ class GET:
         elif nname is not None:
             url = url + f"&name={nname}"
         else:
-            return {"error": "iid or nname is required."}
-                 
-        r = requests.get(url=f"{url}&relax={relax}&mode={mode}&l={limit}")
-        print(r.url)
+            return {}
+        
+        # OUI C'EST VRAIMENT LE CAS, AKATSUKI RX=, RIPPLE RELAX= (+le fait que ripple n'a pas de db pour AP)
+        if self.server == "akatsuki.pw":
+            r = requests.get(url=f"{url}&rx={relax}&mode={mode}&l={limit}")
+        if self.server == "ripple.moe":
+            r = requests.get(url=f"{url}&relax={relax}&mode={mode}&l={limit}")
+        else:
+            r = requests.get(url=f"{url}&rx={relax}&mode={mode}&l={limit}")
+        
+        # print(r.url)
         
         if r.status_code == 200 and r.json() is not None:
             return r.json()
         else:
             print(f"The request users_scores_recent failed. args : "
                   f"\nReason: {r.reason}")
-        return {}
+            return {}
     
     
     # must: iid or nname
     def users_scores_best(self, 
-                            relax: Literal[0, 1, -1],
+                            relax: Literal[0, 1, 2],
                             mode: Optional[str] = "",
                             iid: Optional[int] = None,
                             nname: Optional[str] = None,
@@ -437,7 +450,7 @@ class GET:
         else:
             return {"error": "iid or nname is required."}
                  
-        r = requests.get(url=f"{url}&relax={relax}&mode={mode}&l={limit}")
+        r = requests.get(url=f"{url}&rx={relax}&mode={mode}&l={limit}")
         print(r.url)
         
         if r.status_code == 200 and r.json() is not None:
@@ -447,11 +460,7 @@ class GET:
                   f"\nReason: {r.reason}")
         return {}
 
-
-a = GET()
-pprint(a.ping())
-# pprint(a.user("NyanPotato"))  # (working)
-# pprint(a.user_recent("Ahnnotea", 0))  # (working)
-# pprint(a.user_best("Ahnnotea", 0))  # (working)
-# pprint(a.scores(user="21922", mode=0, b=1860169))  # (working)
-# pprint(a.beatmaps(b=1860169))   # (working)
+a = GET("seventwentyseven.xyz")
+# pprint(a.users_scores_recent(iid=1297, mode='0', relax=0))
+# pprint(a.ping())
+# pprint(a.user("Joksath"))  # (working)
