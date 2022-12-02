@@ -47,6 +47,14 @@ async def on_member_join(member):
 
 
 @client.event
+async def on_member_remove(member):
+    print(f"{member} left !")
+    channel = client.get_channel(int(KEYS.logs_channel))
+    await channel.send(f":x: {member} a quitté le serveur...")  # type: ignore
+    return
+        
+
+@client.event
 async def on_message(ctx):
     content = ctx.content
     # TODO client.id
