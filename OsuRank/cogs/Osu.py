@@ -10,6 +10,7 @@ from discord.ext import commands
 from PIL import Image, ImageFont, ImageDraw
 from OsuRank.utils import OsuAPIv2, OsuAPI, utils, OsuAPIv3
 from OsuRank.utils import display_score as dp
+from OsuRank.OsuPSS import Ripple
 from bs4 import BeautifulSoup
 from pprint import pprint
 import time
@@ -30,6 +31,7 @@ class Osu(commands.Cog):
 
     def __init__(self, client):
         self.client = client
+        self.supported_servers = ['akatsuki', 'ripple']
         self.binding_message = f"Pour pouvoir utiliser cette commande tu (ou la personne que tu as ping) as besoin d'être lié avec le bot. Pour être lié il te suffit de faire la commande `{prefix}bind \"url de ton profil osu\"`," \
                                f"\nMerci de ne pas mettre un autre profil que le tiens. Être lié avec le bot te permetteras de pouvoir exécuter la plupart des commandes et aussi de choisir un skin pour la commande `{prefix}render` Ainsi que de pouvoir utiliser la commande `{prefix}last_play_compare`"
         self.API = OsuAPIv3.API()
@@ -271,6 +273,8 @@ class Osu(commands.Cog):
     class LastPlayFlags(commands.FlagConverter, delimiter="=",):
         username: typing.Optional[str]
         mode: typing.Optional[str]
+        server: typing.Optional[str]
+        relax: typing.Optional[str]
         fails: bool = False
 
     @commands.command(name="last_play",
@@ -284,6 +288,8 @@ class Osu(commands.Cog):
         # =============================| initialisation des variables |============================================== #
         username = flags.username
         mode = flags.mode
+        server = flags.server
+        relax = flags.relax
         osu_id = None
         f = 1 if flags.fails else 0
         color = 0xc60800
@@ -323,11 +329,74 @@ class Osu(commands.Cog):
         
         # user est un id  TODO user: int
         # ==========> Envoi de la requète <========== #
-        play = self.API.get_user_score(user = str(osu_id), score_type = "recent", mode = mode, limit = 1, include_fails=f)
-        if play == {} or play == []:
-            return await ctx.reply(f"{username} n'a pas de parties récentes.")
-        else:
-            play = play[0]
+        play = []
+        mode_int = 0 if mode == 'osu' else (1 if mode == 'taiko' else (2 if mode == 'fruits' else 3))
+        relax_int = 0 if relax is None else (1 if relax.upper() == 'RX' or relax.upper() == 'RELAX' else (2 if relax.upper() == 'AP' or relax.upper() == 'AUTOPILOT' else 0))
+        
+        print(f'server: {server}')
+        if relax is not None:
+            if relax.upper() not in ['AP', 'AUTOPILOT', 'RX', 'RELAX']:
+                return await ctx.send(f"malheureusement {ctx.author.name}, {relax} n'est pas un mode valable, mais [rx, relax, ap, autopilot ou rien] le sont, donc retente ta chance si il le faut.")
+        if server == None or server == 'bancho': # par défaut le serveur est bancho
+            play = self.API.get_user_score(user = str(osu_id), score_type = "recent", mode = mode, limit = 1, include_fails=f)
+            if play == {} or play == []:
+                return await ctx.reply(f"{username} n'a pas de parties récentes.")
+            else:
+                play = play[0]
+        
+        elif server in self.supported_servers:
+            if server == 'akatsuki':
+                server_url = "akatsuki.pw"
+            elif server == 'ripple':
+                if relax is not None: 
+                    if relax.upper() == 'AP' or relax.upper() == 'AUTOPILOT': return await ctx.send(f'{server} ne supporte pas les scores en AutoPilot. :/')
+                server_url = "ripple.moe"
+                
+            else:
+                return await ctx.send("that message is not supposed to be seen. (it doesn't existed)")
+            
+            API_RIP = Ripple.GET(server_url)
+            
+            user_data = API_RIP.user(user=username, mode=mode_int)
+            if user_data is None:
+                return await ctx.send(f"**{username}** n'existe pas sur le serveur *{server}*.")
+            else:
+                user_data = user_data[0]
+            
+            data = API_RIP.users_scores_recent(nname=username, mode=str(mode_int), relax=relax_int)['scores']
+            if data is None:
+                return await ctx.send(f"**{username}** n'a pas de partie récente sur le serveur *{server}* {f'(+{relax})' if relax is not None else ''}.")
+            else:
+                data = data[0]
+            
+            play = {
+                'server': {server},
+                'user': {'user_id': int(user_data['user_id']),
+                        'username': username,
+                        'avatar_url': f"https://a.{server_url}/{user_data['user_id']}"
+                        },
+                'beatmap_id': data['beatmap']['beatmap_id'],
+                'mode': mode,
+                'mode_int': data['play_mode'],
+                'statistics': {'count_300': int(data['count_300']),
+                            'count_geki': int(data['count_geki']),
+                            'count_100': int(data['count_100']),
+                            'count_katu': int(data['count_katu']),
+                            'count_50': int(data['count_50']),
+                            'count_miss': int(data['count_miss']),
+                            },
+                'beatmap_md5': data['beatmap_md5'],
+                'score_id': data['id'],
+                'mods_int': int(data['mods']),
+                'score': int(data['score']),
+                'created_at': data['time'],
+                'perfect': data['full_combo'],
+                'pp': float(data['pp']),
+                'rank': data['rank'],
+                'accuracy': data['accuracy']/100,
+                'max_combo': int(data['max_combo'])
+            }
+
         
         # ==========> Envoi du message <========== #
         rank_embed = await ctx.send(embed=get_embed(skin=skin_id, play=play, color=color))
