@@ -337,6 +337,7 @@ class Osu(commands.Cog):
         if relax is not None:
             if relax.upper() not in ['AP', 'AUTOPILOT', 'RX', 'RELAX']:
                 return await ctx.send(f"malheureusement {ctx.author.name}, {relax} n'est pas un mode valable, mais [rx, relax, ap, autopilot ou rien] le sont, donc retente ta chance si il le faut.")
+        
         if server == None or server == 'bancho': # par défaut le serveur est bancho
             play = self.API.get_user_score(user = str(osu_id), score_type = "recent", mode = mode, limit = 1, include_fails=f)
             if play == {} or play == []:
@@ -399,9 +400,12 @@ class Osu(commands.Cog):
 
         
         # ==========> Envoi du message <========== #
-        rank_embed = await ctx.send(embed=get_embed(skin=skin_id, play=play, color=color))
-        for emoji in ['🏆', '⏰']:
-            await rank_embed.add_reaction(emoji)
+        try:
+            rank_embed = await ctx.send(embed=get_embed(skin=skin_id, play=play, color=color))
+            for emoji in ['🏆', '⏰']:
+                await rank_embed.add_reaction(emoji)
+        except Exception as e:
+            await ctx.send(f"désolé chef il semblerait que: {e}.")
 
 
     @commands.command(name="last_play_compare",

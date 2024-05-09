@@ -112,23 +112,24 @@ class generate_embed_score:
         # print('pass 6.6')
         self.total_score = score.get('score')
         self.FC = self.score.get("perfect")
-        self.count_300  = int(self.stats.get('count_300'))
-        self.count_geki = int(self.stats.get('count_geki'))
-        self.count_100  = int(self.stats.get('count_100'))
-        self.count_katu = int(self.stats.get('count_katu'))
-        self.count_50   = int(self.stats.get('count_50'))
-        self.count_miss = int(self.stats.get('count_miss'))
+        self.count_300  = self.stats.get('count_300')
+        self.count_geki = 0 if self.stats.get('count_geki') is None else self.stats.get('count_geki')
+        self.count_100  = self.stats.get('count_100')
+        self.count_katu = 0 if self.stats.get('count_katu') is None else self.stats.get('count_katu')
+        self.count_50   = self.stats.get('count_50')
+        self.count_miss = self.stats.get('count_miss')
         self.accuracy = score.get('accuracy') * 100
-        self.combo = int(self.score.get('max_combo'))
+        self.combo = self.score.get('max_combo')
         if self.score.get('server') == None:
             self.pos = self.pb_pos(self.user_id, self.mode, score.get('id'))
         else:
             self.pos = ''
-
+            
+        # retirer le RX aux mode int !
         # print('pass 7')
         map_ = rosu_pp_py.Beatmap(bytes=requests.get(f"https://osu.ppy.sh/osu/{self.beatmap_id}").content)
         # available:  'mode', 'mods', 'n_geki', 'n_katu', 'n300', 'n100', 'n50', 'n_misses', 'acc', 'combo', 'passed_objects', 'clock_rate', or 'difficulty'
-        ParamNormal = rosu_pp_py.Calculator(mode=self.mode_int, acc=self.accuracy, mods=self.mods_int, n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss, combo=score.get("max_combo"))
+        ParamNormal = rosu_pp_py.Calculator(mode=self.mode_int, acc=self.accuracy, mods=self.mods_int, n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss, combo=self.combo)
         ParamFC = rosu_pp_py.Calculator(mode=self.mode_int, mods=self.mods_int, n300=self.count_300, n100=self.count_100, n50=self.count_50, n_geki=self.count_geki, n_katu=self.count_katu, n_misses=self.count_miss)
         ParamBEST = rosu_pp_py.Calculator(mode=self.mode_int, mods=self.mods_int)
         
@@ -165,7 +166,7 @@ class generate_embed_score:
                                 f"\n **__stars:__** **{self.stars}☆**",
                         inline=False)
     
-        embed.add_field(name = f"**__{self.kind}Score:__**", 
+        embed.add_field(name =  f"**__{self.kind}Score:__**", 
                         value = f"__rank:__ {self.emote_rank} {'(**FC**)' if self.FC else '(**~FC**)' if self.max_combo == self.combo else ''}" # type: ignore
                                 f"\n| `{self.count_300:03d}` {str(emotes.get('300'))} |- - - - - - - - - - - - - -| "
                                 f"`{self.count_geki:03d}` {str(emotes.get('300g'))} |\n"
@@ -345,19 +346,15 @@ def get_binded(discord_id: int = 0, osu_id: int = 0):
 def get_courbe(rank_history: list):
 
     y = [a/1000 for a in rank_history]
-    x = [a for a in range(len(y))]
-
-    fig, ax = plt.subplots()
-    ax.plot(x, y, "#5865F2", linewidth=4)
-    ax.set_facecolor('#2C2F33') # 2C2F33
-    ax.invert_yaxis()
-    ax.get_xaxis().set_visible(False)
-    ax.yaxis.set_major_formatter(StrMethodFormatter('{x:n}k'))
-    ax.grid()
-
-    fig.patch.set_facecolor('#23272A') # 23272A
-    fig.set_figwidth(16)
-    fig.set_figheight(4)
+    x = range(len(y))
+    
+    plt.figure(figsize=(16, 4), facecolor="#2C2D31")
+    plt.plot(x, y, "#5865F2", linewidth=4)
+    plt.gca().set_facecolor("#2C2F33") # type: ignore
+    plt.gca().invert_yaxis() # type: ignore
+    plt.gca().get_xaxis().set_visible(False) # type: ignore
+    plt.gca().yaxis.set_major_formatter(StrMethodFormatter('{x:n}k')) # type: ignore
+    plt.grid()
 
     plt.yticks(fontsize=16, color="w")
     plt.xlim([-1, max(x)+0.5])
